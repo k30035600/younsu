@@ -1,0 +1,18 @@
+{
+  "name": "commission-portal",
+  "private": true,
+  "version": "1.0.0",
+  "description": "행정심판위원회 심리 참고용 증거 대보·검색(정적)",
+  "scripts": {
+    "start": "node start.js",
+    "build:data": "python ../../tools/build_commission_evidence_json.py",
+    "sync:source": "python ../../tools/sync_web_source.py --mirror-public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "happy-dom": "^20.8.9",
+    "marked": "^14.1.0"
+  }
+}

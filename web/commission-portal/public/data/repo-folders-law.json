@@ -1,0 +1,9 @@
+{
+  "$schemaNote": "저장소 행정심판청구(증거)/최종/법령정보/ 전용. portal-data precedentFiles·스크립트와 무관하게 이 파일만 편집한다.",
+  "standalone": true,
+  "physicalRootHint": "D:\\OneDrive\\Cursor\\younsu\\행정심판청구(증거)\\최종\\법령정보",
+  "marker": "행정심판청구(증거)/최종/법령정보/",
+  "folders": [
+    { "id": "__root__", "label": "법령정보 루트(PDF 직접 배치)" }
+  ]
+}

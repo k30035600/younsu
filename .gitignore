@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Node (commission-portal 등)
+node_modules/
+
+# 환경·비밀
+.env
+.env.*
+*.pem
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# 로그·임시
+*.log
+npm-debug.log*
+.cursor/
+
+# ---------------------------------------------------------------------------
+#  추적 범위 (GitHub): 행정심판청구·제출 행정심판최종본·도구·웹(위원회 대보)만
+#  루트의 `고소고발/`, `돌심방사진/`, `선거법위반/`, `돌심방자료/` 등은 제외
+# ---------------------------------------------------------------------------
+/*
+!.gitignore
+!/README.md
+!/행정심판청구/
+!/행정심판청구/**
+!/행정심판최종본/
+!/행정심판최종본/**
+!/tools/
+!/tools/**
+# !/tools/** 가 하위 __pycache__까지 포함하므로 다시 제외
+tools/**/__pycache__/
+!/web/
+!/web/**
+# 위 !/web/** 아래 node_modules까지 포함되므로 다시 제외
+web/**/node_modules/
+!/docs/
+!/docs/**
+docs/**/__pycache__/
+
+# 행정심판청구 내 대용량 증거 사본(USB·전자제출과 동일 복사본)
+행정심판청구/증거_갑호증/

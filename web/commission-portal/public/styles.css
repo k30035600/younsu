@@ -1,0 +1,1840 @@
+:root {
+  /* 제출 서면 원문(마크다운·미주·참조 MD·증거 표 요지 등): Windows 바탕 계열 */
+  /* 그 외·참고(UI·개요 허브·안내·표 머리글 등): Windows 고딕(맑은 고딕) 계열 */
+  --font-doc: "Batang", "BatangChe", "Nanum Batang", "Nanum Myeongjo", "Malgun Gothic", serif;
+  --font-ui: "Malgun Gothic", "맑은 고딕", "Nanum Gothic", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  --bg: #e6e8eb;
+  --surface: #fff;
+  /* 원문 본문: 가독용 검정 */
+  --text-body: #0a0a0a;
+  --text: var(--text-body);
+  --muted: #475569;
+  --border: #c8cdd4;
+  --border-doc: #b8bec7;
+  /* 공통 UI(제목·탭·버튼 계열) */
+  --accent: #1e3a5f;
+  --accent-hover: #152a45;
+  --focus: #2563eb;
+  /* 호증(표·배지·갑호증 영역) */
+  --evidence: #1d4ed8;
+  --evidence-soft: #dbeafe;
+  --evidence-muted: #1e40af;
+  /* 인용·미주·판례모음(본문과 구분되는 파랑) */
+  --cite: #2563eb;
+  --cite-muted: #1d4ed8;
+  --cite-bg: #eff6ff;
+  --cite-border: rgba(37, 99, 235, 0.28);
+  /* 조화 스케일 (html 16px 기준) */
+  --fs-title: 1.5rem;
+  --fs-subtitle: 0.9375rem;
+  --fs-section: 1.125rem;
+  /* 원문(서면 본문·미주·참조 MD): 글자 크기 — 1rem = 브라우저 기본(보통 16px) */
+  --fs-body: 1rem;
+  --fs-small: 0.9375rem;
+  --fs-caption: 0.875rem;
+  --fs-foot: 0.8125rem;
+  /* 원문·화면 기본 줄간격(본문 가독성) */
+  --lh-doc: 1.65;
+  --lh-tight: 1.55;
+}
+
+html {
+  font-size: 16px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-doc);
+  letter-spacing: 0.02em;
+  color: var(--text);
+  background: var(--bg);
+  text-align: justify;
+  text-justify: inter-character;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 컨트롤·코드·캔버스/썸네일 정렬은 양쪽 맞춤 제외 */
+button,
+.tab,
+.tab-tool,
+.btn,
+.btn-close,
+input,
+select,
+textarea,
+.pdf-viewer-zoom,
+.pdf-viewer-scroll,
+.inline-doc-mount .viewer-img-wrap,
+.viewer-img-wrap,
+.md-content pre,
+.cite-preview-mount pre,
+.cite-preview-txt-pre,
+.detail-range-paths,
+.md-editor-textarea {
+  text-align: start;
+  text-justify: auto;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+.skip:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  padding: 0.5rem 1rem;
+  background: var(--surface);
+  border: 2px solid var(--focus);
+}
+
+.site-header {
+  background: var(--surface);
+  border-bottom: 3px double var(--border-doc);
+  padding: 1.5rem 1.75rem 1.35rem;
+  font-family: var(--font-ui);
+}
+
+.site-header .inner {
+  max-width: min(96rem, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.site-header h1 {
+  margin: 0 0 0.4rem;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: var(--fs-subtitle);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.header-meta {
+  margin: 0.5rem 0 0;
+  font-size: var(--fs-foot);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.section-heading {
+  margin: 0 0 0.6rem;
+  font-size: var(--fs-section);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+
+.tab-hint {
+  margin: 0 0 1.25rem;
+  font-size: var(--fs-small);
+  font-family: var(--font-ui);
+  color: var(--muted);
+  line-height: 1.85;
+  word-break: keep-all;
+}
+
+.tab-hint code {
+  font-size: 0.85em;
+  background: #eef2f7;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.tab-hint--secondary {
+  margin-top: 0.65rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-doc);
+}
+
+.tab-panel {
+  margin-bottom: 1.15rem;
+}
+
+.tab-panel .md-body {
+  font-family: var(--font-doc);
+}
+
+/* 개요 탭: 제출 정본이 아닌 작업·참고 허브 → 고딕 */
+#section-overview .tab-panel .md-body {
+  font-family: var(--font-ui);
+}
+
+/* 서면 탭 본문: 문서 제목(# …) 가운데 정렬(행정심판청구서·집행정지신청서 등) */
+.tab-panel .md-content > h1:first-of-type {
+  text-align: center;
+}
+
+.tab-panel--compact .md-body {
+  max-height: 42vh;
+  overflow: auto;
+  border: 1px solid var(--border-doc);
+  border-radius: 2px;
+  padding: 1rem 1.2rem;
+  background: #fafbfc;
+}
+
+.evidence-subheading {
+  margin: 1.25rem 0 0.75rem;
+  font-size: var(--fs-section);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--evidence-muted);
+}
+
+.evidence-subheading--from-appeal {
+  margin-top: 0.35rem;
+}
+
+.evidence-appeal-panel {
+  margin-bottom: 1.35rem;
+}
+
+.doc-pickers {
+  display: grid;
+  gap: 1.35rem;
+  margin-bottom: 1.35rem;
+  max-width: 100%;
+}
+
+@media (min-width: 48rem) {
+  .doc-pickers {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 1.5rem;
+  }
+}
+
+.doc-picker label {
+  display: block;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: var(--fs-small);
+  color: var(--accent);
+  margin-bottom: 0.35rem;
+}
+
+.doc-picker--cite label {
+  color: var(--cite-muted);
+}
+
+.doc-picker--evidence label {
+  color: var(--evidence);
+}
+
+.doc-picker-hint {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-caption);
+  font-family: var(--font-ui);
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.doc-select {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 0.65rem;
+  padding: 0.45rem 0.6rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  border: 1px solid var(--border-doc);
+  border-radius: 2px;
+  background: var(--surface);
+}
+
+.inline-doc-mount {
+  min-height: 4rem;
+  border: 1px solid var(--border-doc);
+  border-radius: 2px;
+  background: #f8f9fb;
+  overflow: hidden;
+}
+
+.inline-doc-mount:empty {
+  min-height: 0;
+  border: none;
+  background: transparent;
+}
+
+.inline-doc-frame {
+  display: block;
+  width: 100%;
+  min-height: 62vh;
+  border: 0;
+  background: #525659;
+}
+
+/* PDF.js 뷰: 썸네일 없음, 상단 +/- 확대·축소 */
+.pdf-viewer-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  background: #525659;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  min-height: 62vh;
+}
+
+/** 묶음 인라인: 확대/축소 바 숨김 — 더블클릭으로 전체 화면(바 표시) */
+.pdf-viewer-wrap--toolbar-hidden .pdf-viewer-scroll {
+  cursor: zoom-in;
+}
+
+.pdf-viewer-wrap--modal {
+  min-height: 70vh;
+}
+
+.pdf-viewer-wrap--modal .pdf-viewer-scroll {
+  min-height: 60vh;
+  max-height: min(78vh, 52rem);
+}
+
+.pdf-viewer-modal-hint {
+  margin: 0;
+  padding: 0.35rem 0.65rem 0.5rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  line-height: 1.5;
+  background: #e2e8f0;
+  border-bottom: 1px solid var(--border-doc);
+  flex-shrink: 0;
+}
+
+.pdf-viewer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: #e2e8f0;
+  border-bottom: 1px solid var(--border-doc);
+  font-family: var(--font-ui);
+  flex-shrink: 0;
+}
+
+.pdf-viewer-zoom-btn {
+  min-width: 2.5rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid var(--border-doc);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.pdf-viewer-zoom-btn:hover {
+  background: #eef2f7;
+}
+
+.pdf-viewer-zoom-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.pdf-viewer-zoom {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--muted);
+  min-width: 3.25rem;
+  text-align: center;
+}
+
+.pdf-viewer-scroll {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+/* max-width 제거: 확대 시 캔버스 실제 폭을 유지해 가로 overflow + 스크롤 가능 */
+.pdf-viewer-page {
+  display: block;
+  width: auto;
+  max-width: none;
+  height: auto;
+  margin: 0 auto 0.75rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.pdf-viewer-page:last-child {
+  margin-bottom: 0;
+}
+
+.inline-doc-mount .viewer-img-wrap {
+  padding: 0.75rem;
+  text-align: center;
+  background: #fafbfc;
+}
+
+.inline-doc-mount .viewer-img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+.doc-picker-err {
+  margin-top: 0.5rem;
+}
+
+.tab-error {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.85rem;
+  background: #fff4f0;
+  border: 1px solid #f0c4b8;
+  border-radius: 2px;
+  color: #9a3412;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.md-notes-wrap {
+  margin-top: 1.5rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--cite-bg);
+  border: 1px solid var(--cite-border);
+  border-radius: 2px;
+}
+
+.notes-title {
+  margin: 0 0 0.65rem;
+  font-size: var(--fs-small);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--cite-muted);
+  letter-spacing: 0.06em;
+}
+
+.md-notes-wrap .md-content {
+  font-size: var(--fs-small);
+  line-height: var(--lh-doc);
+  color: var(--cite-muted);
+}
+
+.compare-panel {
+  margin: 0 0 1.35rem;
+  padding: 0.65rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border-doc);
+  border-radius: 4px;
+  font-family: var(--font-ui);
+}
+
+.compare-summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: var(--fs-small);
+  color: var(--accent);
+}
+
+.compare-hint {
+  margin: 0.5rem 0 0.85rem;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.compare-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 48rem) {
+  .compare-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+  }
+}
+
+.compare-col label {
+  display: block;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+}
+
+.compare-mount {
+  margin-top: 0.5rem;
+}
+
+.compare-mount .inline-doc-frame {
+  min-height: 38vh;
+}
+
+.compare-mount .viewer-img-wrap {
+  max-height: 42vh;
+  overflow: auto;
+}
+
+.viewer-dialog--wide {
+  max-width: min(56rem, calc(100vw - 2rem));
+  width: 100%;
+}
+
+.md-editor-modal .md-editor-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 48rem);
+}
+
+.md-editor-heading-block {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.md-editor-toolbar .md-editor-heading-block .viewer-title {
+  flex: 0 0 auto;
+  margin-right: 0;
+}
+
+.md-editor-source-rel {
+  margin: 0;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  line-height: 1.45;
+  word-break: break-all;
+  width: 100%;
+}
+
+.md-editor-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.md-editor-hint {
+  margin: 0 0 0.75rem;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.md-editor-textarea {
+  width: 100%;
+  flex: 1 1 12rem;
+  min-height: 16rem;
+  padding: 0.75rem 1rem;
+  font-family: ui-monospace, "Cascadia Code", "Malgun Gothic", monospace;
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  border: 1px solid var(--border-doc);
+  border-radius: 4px;
+  resize: vertical;
+  color: var(--text-body);
+  background: #fafbfc;
+}
+
+.md-editor-save {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.md-editor-save:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+.md-editor-status {
+  margin: 0.5rem 0 0;
+  font-size: var(--fs-caption);
+  min-height: 1.25em;
+}
+
+.md-editor-status.is-ok {
+  color: #166534;
+}
+
+.md-editor-status.is-err {
+  color: #b91c1c;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.65rem 1.5rem;
+  background: #dce1e8;
+  border-bottom: 1px solid var(--border-doc);
+  max-width: min(96rem, calc(100% - 2rem));
+  margin: 0 auto;
+  width: 100%;
+  font-family: var(--font-ui);
+}
+
+.tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  width: 100%;
+}
+
+.tabs-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1 1 auto;
+  /* min-width:0 은 플렉스에서 이 줄을 내용 너비 이하로 줄여 버튼·글자가 안 보이게 할 수 있음 */
+  min-width: min-content;
+}
+
+.tabs-tools-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem 1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.tabs-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.tab-tool {
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.tab-tool:hover {
+  background: #f1f5f9;
+  border-color: var(--accent);
+}
+
+.tab-tool:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.tab {
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
+}
+
+.tab.is-active {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.main {
+  flex: 1;
+  max-width: min(96rem, calc(100% - 2rem));
+  margin: 1rem auto 1.5rem;
+  padding: 2rem 2.25rem 2.5rem;
+  width: calc(100% - 2rem);
+  background: var(--surface);
+  border: 1px solid var(--border-doc);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  font-family: var(--font-ui);
+}
+
+.split-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1.45rem;
+  align-items: stretch;
+}
+
+.split-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cite-preview-aside {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cite-preview-panel {
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid var(--border-doc);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.cite-preview-title {
+  margin: 0 0 0.4rem;
+  font-size: var(--fs-small);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.cite-preview-title .cite-preview-heading-main {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.cite-preview-lead {
+  margin: 0 0 0.65rem;
+  font-size: var(--fs-caption);
+  font-family: var(--font-ui);
+  color: var(--muted);
+  line-height: 1.55;
+  word-break: keep-all;
+  white-space: pre-line;
+}
+
+.cite-preview-mount {
+  min-height: 10rem;
+  max-height: min(78vh, 48rem);
+  overflow: auto;
+  font-family: var(--font-ui);
+}
+
+.cite-preview-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  min-height: 36vh;
+  max-height: min(58vh, 36rem);
+}
+
+.cite-preview-inline-hint {
+  margin: 0.45rem 0 0;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.cite-preview-md {
+  font-family: var(--font-doc);
+  font-size: var(--fs-small);
+  line-height: var(--lh-doc);
+}
+
+.cite-preview-txt-pre {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  font-size: var(--fs-caption);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, "Nanum Gothic", monospace;
+  background: #fafbfc;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.cite-preview-video-wrap {
+  border-radius: 6px;
+  overflow: hidden;
+  background: #000;
+}
+
+.cite-preview-video-inline {
+  display: block;
+  width: 100%;
+  max-height: min(50vh, 28rem);
+  vertical-align: top;
+}
+
+.cite-preview-err {
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 64rem) {
+  .split-shell {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+
+  .split-main {
+    flex: 1 1 56%;
+    min-width: 0;
+  }
+
+  .cite-preview-aside {
+    flex: 1 1 40%;
+    max-width: 44%;
+    min-width: 0;
+    position: sticky;
+    top: 0.75rem;
+    align-self: flex-start;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.section h2 {
+  margin: 0 0 0.75rem;
+  font-size: var(--fs-section);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.section[hidden] {
+  display: none !important;
+}
+
+.section.is-visible {
+  display: block;
+}
+
+.links {
+  padding-left: 1.25rem;
+}
+
+.case-line {
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.party {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.section ul:not(.links) {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.section ul:not(.links) li {
+  margin-bottom: 0.4rem;
+}
+
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-ui);
+}
+
+.search-bar label {
+  font-size: var(--fs-caption);
+  color: var(--muted);
+}
+
+#q {
+  flex: 1 1 200px;
+  min-width: 180px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border-doc);
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+}
+
+#tier,
+#gab-folder {
+  padding: 0.45rem 0.5rem;
+  border-radius: 2px;
+  border: 1px solid var(--border-doc);
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+}
+
+#gab-folder {
+  flex: 0 1 14rem;
+  min-width: 10rem;
+  max-width: 100%;
+}
+
+.count {
+  font-size: var(--fs-caption);
+  color: var(--muted);
+}
+
+@media (min-width: 30rem) {
+  .search-bar--sticky {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin-top: -0.25rem;
+    padding: 0.5rem 0;
+    margin-bottom: 0.85rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-doc);
+  }
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-doc);
+  border-radius: 2px;
+  background: var(--surface);
+}
+
+.evidence-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-doc);
+  font-size: var(--fs-small);
+  line-height: var(--lh-doc);
+  color: var(--text-body);
+}
+
+.evidence-table th,
+.evidence-table td {
+  text-align: justify;
+  text-justify: inter-character;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  height: auto;
+}
+
+/* 호증별·요지 길이에 따라 행 높이 가변 (짧은 요지는 낮게, 긴 요지는 여백·줄바꿈으로 높게) */
+.evidence-table tbody tr {
+  height: auto;
+  cursor: pointer;
+}
+
+.evidence-table .col-gab {
+  white-space: nowrap;
+  min-width: 7.5em;
+  color: var(--evidence);
+  font-weight: 600;
+}
+
+.evidence-table .col-tier {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.evidence-table .col-summary {
+  line-height: 1.65;
+  min-height: 2.6em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.evidence-table tr[data-tier="core"] td {
+  padding-top: 0.52rem;
+  padding-bottom: 0.52rem;
+}
+
+.evidence-table tr[data-tier="supplement"] td {
+  padding-top: 0.62rem;
+  padding-bottom: 0.62rem;
+}
+
+.evidence-table tr.row-summary-long td {
+  padding-top: 0.72rem;
+  padding-bottom: 0.72rem;
+}
+
+.evidence-table tr.row-summary-xlong td {
+  padding-top: 0.88rem;
+  padding-bottom: 0.88rem;
+}
+
+.evidence-table tr.row-summary-xxlong td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.evidence-table th {
+  background: #e2e8f0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text-body);
+}
+
+.evidence-table tbody tr:hover {
+  background: var(--evidence-soft);
+}
+
+.evidence-table tbody tr.is-selected {
+  background: var(--cite-bg);
+}
+
+.evidence-table .col-num {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.badge-core {
+  background: var(--evidence-soft);
+  color: var(--evidence-muted);
+}
+
+.badge-supp {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.detail-hint {
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  margin: 0.75rem 0 0.35rem;
+  line-height: 1.55;
+}
+
+.detail-panel {
+  margin-top: 0.5rem;
+  padding: 1rem 1.1rem;
+  background: #fafbfc;
+  border: 1px solid var(--border-doc);
+  border-radius: 2px;
+}
+
+.detail-panel h4 {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-small);
+  font-family: var(--font-doc);
+  font-weight: 700;
+  color: var(--evidence);
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+.detail-text {
+  margin: 0;
+  font-family: var(--font-doc);
+  font-size: var(--fs-small);
+  line-height: var(--lh-doc);
+  color: var(--text-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+.doc-preview-gab-title {
+  margin: 0 0 0.5rem;
+  font-size: var(--fs-small);
+  font-family: var(--font-doc);
+  font-weight: 700;
+  color: var(--evidence);
+  line-height: var(--lh-tight);
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+.doc-preview-gab-body {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-doc);
+  font-size: var(--fs-small);
+  line-height: var(--lh-doc);
+  color: var(--text-body);
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+.doc-preview-gab-files {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.doc-preview-gab-files .detail-gab3-pdf-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  min-height: 22vh;
+  max-height: min(52vh, 34rem);
+}
+
+.doc-preview-gab-files .btn {
+  margin-right: 0.35rem;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+
+.site-footer {
+  margin-top: auto;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-doc);
+  background: var(--surface);
+  font-family: var(--font-ui);
+  font-size: var(--fs-foot);
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.site-footer .inner {
+  max-width: min(96rem, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.footer-kicker {
+  font-weight: 700;
+  color: var(--muted);
+  margin-right: 0.25rem;
+}
+
+.site-footer code {
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.muted {
+  font-size: var(--fs-small);
+  font-family: var(--font-ui);
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+  line-height: var(--lh-doc);
+}
+
+.subsection-title {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.05rem;
+  font-family: var(--font-ui);
+  color: var(--accent);
+}
+
+.overview-body p {
+  margin: 0 0 0.65rem;
+}
+
+.doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.btn {
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 2px;
+  border: 1px solid var(--border-doc);
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.btn:hover {
+  background: #eef2f7;
+  border-color: var(--accent);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.btn-sm {
+  font-size: 0.78rem;
+  padding: 0.28rem 0.55rem;
+}
+
+.detail-files {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border);
+}
+
+.detail-files-hint {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  color: var(--muted);
+}
+
+.detail-files-hint.ref-bundle-scope {
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.detail-range-paths {
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.65rem;
+  font-family: ui-monospace, "Malgun Gothic", monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.detail-gab3-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.35rem;
+}
+
+/** 묶음에 PDF가 있으면 세로로 쌓아 순서대로 본문(렌더링) 표시 */
+.detail-gab3-grid--pdf-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  grid-template-columns: unset;
+}
+
+.detail-files .detail-gab3-pdf-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  min-height: 22vh;
+  max-height: min(52vh, 34rem);
+}
+
+.detail-gab3-pdf-mount--err {
+  padding: 0.75rem;
+  font-size: var(--fs-caption);
+  color: #b45309;
+}
+
+.detail-gab3-item {
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.detail-gab3-item figcaption {
+  margin-bottom: 0.45rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.detail-gab3-item figcaption strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.detail-gab3-fname {
+  font-family: ui-monospace, "Malgun Gothic", monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.detail-gab3-img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  background: var(--bg, #fff);
+  border-radius: 4px;
+  cursor: pointer;
+  vertical-align: top;
+}
+
+.detail-gab3-img:focus {
+  outline: 2px solid var(--accent, #2563eb);
+  outline-offset: 2px;
+}
+
+.detail-gab3-video {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  border-radius: 4px;
+  background: #000;
+  vertical-align: top;
+}
+
+.detail-files .btn {
+  margin-right: 0.35rem;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+  font-size: 0.88rem;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.viewer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 0;
+}
+
+.viewer-modal[hidden] {
+  display: none !important;
+}
+
+.viewer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+/* 거의 전체 창(이미지·PDF 열람 시 가독) — 더블클릭 또는 Esc로 닫기(닫기 단추 동일) */
+.viewer-dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  max-height: 100vh;
+  margin: 0;
+  background: var(--surface);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-doc);
+  background: #e2e8f0;
+  font-family: var(--font-ui);
+}
+
+.viewer-title {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.btn-close {
+  flex-shrink: 0;
+}
+
+.viewer-body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem 1.25rem 1.5rem;
+  font-family: var(--font-ui);
+}
+
+.viewer-modal-hint {
+  margin: 0;
+  padding: 0.5rem 1.25rem 1rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  color: var(--muted);
+  line-height: 1.55;
+  border-top: 1px solid var(--border-doc);
+  background: #f1f5f9;
+}
+
+.md-content {
+  font-family: var(--font-doc);
+  font-size: var(--fs-body);
+  line-height: var(--lh-doc);
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--text-body);
+}
+
+/* 마크다운 `**`·`***` → strong / em (청구서·신청서 등) */
+.md-content strong,
+.md-content b {
+  font-weight: 700;
+  color: #000;
+  font-synthesis: weight;
+}
+
+.md-content em {
+  font-style: italic;
+}
+
+.md-content h1,
+.md-content h2,
+.md-content h3 {
+  margin: 1.5rem 0 0.65rem;
+  line-height: var(--lh-tight);
+  font-family: var(--font-doc);
+  font-weight: 700;
+  color: var(--accent);
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+.md-content h1 {
+  font-size: 1.375rem;
+  letter-spacing: 0.03em;
+}
+
+.md-content h2 {
+  font-size: 1.1875rem;
+  letter-spacing: 0.02em;
+}
+
+.md-content h3 {
+  font-size: 1.0625rem;
+}
+
+/* 마크다운 --- 등 구분선: 선 제거, 한 줄 높이만큼 빈 간격 */
+.md-content hr {
+  border: none;
+  margin: 0;
+  padding: 0;
+  height: calc(1em * var(--lh-doc));
+  background: transparent;
+}
+
+/* 갑호증 별지 등 `<details>` — 접기·펼치기가 화면에서 분명히 보이도록 */
+.md-content details {
+  margin: 0.65rem 0 1rem;
+  border: 1px solid var(--border-doc);
+  border-radius: 4px;
+  padding: 0.35rem 0.65rem 0.65rem;
+  background: #fafbfc;
+}
+
+.md-content summary {
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: var(--accent);
+  margin: 0 0 0.35rem;
+}
+
+.md-content p {
+  margin: 0 0 1rem;
+  text-align: justify;
+  text-justify: inter-character;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.md-content ul,
+.md-content ol {
+  margin: 0 0 0.9rem;
+  padding-left: 1.5rem;
+}
+
+.md-content li {
+  text-align: justify;
+  text-justify: inter-character;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.md-content li > p {
+  text-align: justify;
+}
+
+.md-content code {
+  font-family: var(--font-ui), ui-monospace, monospace;
+  font-size: 0.875em;
+  background: #eef1f5;
+  padding: 0.1em 0.35em;
+  border-radius: 2px;
+}
+
+.md-content pre {
+  overflow-x: auto;
+  padding: 0.85rem 1rem;
+  background: #2c333d;
+  color: #e8eaed;
+  border-radius: 2px;
+  font-family: ui-monospace, "Nanum Gothic", monospace;
+  font-size: 0.8125rem;
+  line-height: var(--lh-doc);
+}
+
+.md-content pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+.md-content blockquote {
+  margin: 0.65rem 0;
+  padding: 0.35rem 0 0.35rem 0.9rem;
+  border-left: 3px solid var(--cite);
+  color: var(--cite-muted);
+  font-size: var(--fs-small);
+  text-align: justify;
+  text-justify: inter-character;
+}
+
+.md-content a {
+  color: var(--cite-muted);
+  text-underline-offset: 2px;
+}
+
+.md-content a:hover {
+  color: var(--cite);
+}
+
+/* 기본: 인용 밑줄 없음 — 청구서·신청서에서만 밑줄 강조 */
+.md-content a.cite-ref {
+  color: var(--cite);
+  text-decoration: none;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-weight: inherit;
+}
+
+#section-appeal .md-content a.cite-ref,
+#section-injunction .md-content a.cite-ref {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.md-content a.cite-ref--nested {
+  color: var(--cite-muted);
+}
+
+.md-content a.cite-ref--external {
+  color: var(--cite);
+}
+
+#section-appeal .md-content a.cite-ref--external,
+#section-injunction .md-content a.cite-ref--external {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.md-content a.cite-ref:focus-visible {
+  outline: 2px solid var(--cite);
+  outline-offset: 2px;
+}
+
+.viewer-video {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 6px;
+  background: #000;
+}
+
+.viewer-frame {
+  width: 100%;
+  min-height: 75vh;
+  border: 1px solid var(--border-doc);
+  border-radius: 2px;
+  background: #fff;
+}
+
+.viewer-body:has(.pdf-viewer-wrap--modal) {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.viewer-body:has(.image-viewer-wrap) {
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.viewer-body .pdf-viewer-wrap--modal {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.image-viewer-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.viewer-body .image-viewer-wrap .pdf-viewer-scroll {
+  min-height: 40vh;
+  max-height: min(78vh, 52rem);
+}
+
+/* 모달 PDF·이미지: 마우스 드래그 패닝 + 스크롤(휠·바·터치) 병행 */
+.viewer-body .pdf-viewer-wrap--modal .pdf-viewer-scroll--pan,
+.viewer-body .image-viewer-wrap .image-viewer-scroll--pan {
+  cursor: grab;
+  overscroll-behavior: contain;
+}
+
+.viewer-body .pdf-viewer-wrap--modal .pdf-viewer-scroll--pan.is-panning,
+.viewer-body .image-viewer-wrap .image-viewer-scroll--pan.is-panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.viewer-img-wrap {
+  text-align: center;
+}
+
+.viewer-img-wrap--clickable .viewer-img:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.viewer-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.viewer-txt-plain {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  max-height: min(78vh, 40rem);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-doc, ui-monospace, monospace);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  color: var(--text-body);
+}
+
+.viewer-error {
+  margin: 0;
+  font-family: var(--font-ui);
+  color: #b45309;
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+
+@media print {
+  body {
+    background: #fff;
+    font-size: 11pt;
+  }
+
+  /* 보고서·인쇄 출력: 글자색 전부 검정(링크 제외·아래에서 파란+밑줄) */
+  body,
+  body * {
+    color: #000 !important;
+  }
+
+  a[href],
+  a[href] * {
+    color: #0b57d0 !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px;
+  }
+
+  .skip,
+  .compare-panel,
+  .doc-pickers,
+  .cite-preview-aside,
+  .search-bar,
+  .detail-hint,
+  .detail-files,
+  .viewer-modal,
+  .site-footer {
+    display: none !important;
+  }
+
+  .site-header {
+    border-bottom: 2px solid #000;
+    padding: 0.5rem 0;
+  }
+
+  /* 섹션 탭 이름은 인쇄물에 남김(MD 편집 단추 줄은 숨김) */
+  .tabs {
+    display: block !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid #999 !important;
+    padding: 0 0 0.35rem 0 !important;
+    margin: 0 0 0.5rem 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .tabs-tools-wrap {
+    display: none !important;
+  }
+
+  .tabs-row {
+    display: block !important;
+  }
+
+  .tabs-main {
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  .tab {
+    display: inline !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font: inherit !important;
+    font-size: 9pt !important;
+    font-weight: 600 !important;
+    color: #000 !important;
+    cursor: default !important;
+    vertical-align: baseline !important;
+  }
+
+  .tab::after {
+    content: " · ";
+    font-weight: 400;
+    color: #000 !important;
+  }
+
+  .tabs-main .tab:last-of-type::after {
+    content: "";
+  }
+
+  .main {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .split-shell {
+    display: block;
+  }
+
+  .section[hidden] {
+    display: none !important;
+  }
+
+  .tab-panel--compact .md-body {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .evidence-table {
+    font-size: 10pt;
+  }
+
+  .detail-panel {
+    border: 1px solid #999;
+    padding: 0.5rem;
+    page-break-inside: avoid;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    width: calc(100% - 1rem);
+    padding: 1.25rem 1rem 1.75rem;
+  }
+
+  .md-content p,
+  .md-content li,
+  .md-content li > p {
+    text-align: justify;
+    text-justify: inter-character;
+  }
+}
