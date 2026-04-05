@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node start.js",
     "build:data": "python ../../tools/build_commission_evidence_json.py",
-    "sync:source": "python ../../tools/sync_web_source.py --mirror-public"
+    "sync:source": "python ../../tools/sync_web_source.py"
   },
   "engines": {
     "node": ">=18"

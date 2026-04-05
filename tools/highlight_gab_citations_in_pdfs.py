@@ -240,13 +240,13 @@ def main() -> int:
     ap.add_argument(
         "--md01",
         type=Path,
-        default=_REPO / "행정심판청구(최종)" / "260404_01_행정심판청구서_최종.md",
+        default=_REPO / "행정심판청구(최종)" / "260405" / "260405_01_행정심판청구서.md",
         help="청구서 MD",
     )
     ap.add_argument(
         "--md02",
         type=Path,
-        default=_REPO / "행정심판청구(최종)" / "260404_02_집행정지신청서_최종.md",
+        default=_REPO / "행정심판청구(최종)" / "260405" / "260405_02_집행정지신청서.md",
         help="집행정지 신청서 MD",
     )
     ap.add_argument("--gab-root", type=Path, default=None, help="갑호증 루트(기본: 자동 탐지)")

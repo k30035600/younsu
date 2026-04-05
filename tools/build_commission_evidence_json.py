@@ -5,6 +5,14 @@
 실행(프로젝트 루트 younsu):
   python tools/build_commission_evidence_json.py
 
+⚠ 조판본·열람 정본: `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/` — `tools/evidence_pdf_official_footer.py` 산출.
+  포털 `/serve/`·app.js 가 제출본 경로로 요청해도 조판 PDF 를 우선 연다.
+
+판례 PDF 인용(`2008두167` 등 → 우측 패널 링크·썸네일):
+  - `pdf_2_pdf/법령정보/*.pdf` 및 `최종/법령정보/*.pdf` 를 병합해 `meta.precedentFiles` 에 넣는다.
+  - 사건번호는 **label 과 rel 파일명(리프) 모두**에서 추출한다(한쪽만 있어도 매칭).
+  - 본문·파일명에 `2008두167` 또는 공백 삽입형 `2008 두 167` 등 동일 정규식으로 맞출 것.
+
 「부터~까지」분할 묶음(포털 UI와 동일 규칙):
   evidence 행에 gabBundlePrimaryKey, gabFileRange.rels·labels·firstRel·lastRel을 두면
   web/commission-portal/public/app.js 가 통합 호증명 선택·분할 파일 개별 선택 모두
@@ -21,7 +29,7 @@ import re
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-_MD = _REPO / "행정심판청구(최종)" / "260404_01_행정심판청구서_최종.md"
+_MD = _REPO / "행정심판청구(최종)" / "260405" / "260405_01_행정심판청구서.md"
 _OUT = _REPO / "web" / "commission-portal" / "public" / "data" / "portal-data.json"
 
 # 실제 편철 루트: `행정심판청구(증거)/갑호증/갑제N호증/파일`
@@ -30,6 +38,30 @@ GAB_DIR_REL = "행정심판청구(증거)/갑호증"
 GAB_SURVEY_DIR_REL = "행정심판청구(증거)/갑호증 전수조사"
 # 국가법령정보 대조용 검증본(갑호증 제외) — `행정심판청구(증거)/최종/법령정보/`
 LAW_INFO_DIR_REL = "행정심판청구(증거)/최종/법령정보"
+# 조판본(우측 패널 인용·썸네일 기준 우선) — `행정심판청구(증거)/pdf_2_pdf/법령정보/`
+PDF2_LAW_DIR_REL = "행정심판청구(증거)/pdf_2_pdf/법령정보"
+# 파일명·label·rel 리프에서 사건번호 추출 — app.js `buildCiteMaps`·본문 인용과 동일(공백 허용)
+_CASE_ID_IN_LABEL = re.compile(r"(\d{2,4}\s*(?:두|누|다)\s*\d+)")
+
+
+def _norm_case_id_token(s: str) -> str:
+    return re.sub(r"\s+", "", (s or ""))
+
+
+def _all_case_ids_from_precedent_item(it: dict) -> list[str]:
+    """`label`만이 아니라 `rel` 마지막 세그먼트(파일명)에서도 사건번호를 찾는다(누락 방지)."""
+    lab = str(it.get("label") or "")
+    rel = str(it.get("rel") or "")
+    leaf = rel.rsplit("/", 1)[-1] if rel else ""
+    hay = f"{lab}\n{leaf}"
+    out: list[str] = []
+    seen: set[str] = set()
+    for m in _CASE_ID_IN_LABEL.finditer(hay):
+        cid = _norm_case_id_token(m.group(1))
+        if cid and cid not in seen:
+            seen.add(cid)
+            out.append(cid)
+    return out
 # 우측 패널 「첨부」 — `행정심판청구(증거)/최종/첨부/` (갑호증 루트와 별도)
 ATTACH_DIR_REL = "행정심판청구(증거)/최종/첨부"
 _VIEWABLE_EXT = {".pdf", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4"}
@@ -1024,9 +1056,12 @@ def _tier(label: str) -> str:
 
 def _is_evidence_list_header_line(line: str) -> bool:
     s = line.strip()
-    return "**[증거자료 목록]**" in line or s == "[증거자료 목록]" or s.startswith(
+    if "**[증거자료 목록]**" in line or s == "[증거자료 목록]" or s.startswith(
         "[증거자료 목록]"
-    )
+    ):
+        return True
+    # 별지 제1호 등: 청구서 본문에 목록이 없을 때 동일 블록이 `## 증거자료 목록` 으로 시작
+    return s == "## 증거자료 목록" or s.startswith("## 증거자료 목록")
 
 
 def extract_evidence_section_markdown(text: str) -> str:
@@ -1163,6 +1198,58 @@ def list_law_info_verification_pdfs() -> list[dict]:
     return out
 
 
+def list_pdf2_law_verification_pdfs() -> list[dict]:
+    """조판본 PDF — `행정심판청구(증거)/pdf_2_pdf/법령정보/` (포털 판례 링크·썸네일 기준)."""
+    root = _REPO.joinpath(*PDF2_LAW_DIR_REL.split("/"))
+    if not root.is_dir():
+        return []
+    out: list[dict] = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file() or p.suffix.lower() != ".pdf":
+            continue
+        if p.name.startswith("."):
+            continue
+        try:
+            rel_full = p.relative_to(_REPO)
+        except ValueError:
+            continue
+        label = str(p.relative_to(root)).replace("\\", "/")
+        out.append({"label": label, "rel": rel_full.as_posix()})
+    out.sort(key=lambda x: (x["rel"], x["label"]))
+    return out
+
+
+def merge_precedent_pdf_entries(low_priority: list[dict], high_priority: list[dict]) -> list[dict]:
+    """같은 사건번호(두·누·다)는 high_priority(조판본) 항목이 덮어씀. 사건번호 없는 파일은 rel 기준으로 병치."""
+    case_map: dict[str, dict] = {}
+    extras: list[dict] = []
+    seen_extra_rel: set[str] = set()
+
+    def ingest(it: dict) -> None:
+        rel = str(it.get("rel") or "")
+        if not rel:
+            return
+        ids = _all_case_ids_from_precedent_item(it)
+        if ids:
+            for cid in ids:
+                case_map[cid] = it
+        else:
+            if rel not in seen_extra_rel:
+                extras.append(it)
+                seen_extra_rel.add(rel)
+
+    for it in low_priority:
+        ingest(it)
+    for it in high_priority:
+        ingest(it)
+
+    val_rels = {str(v["rel"]) for v in case_map.values()}
+    extras_f = [x for x in extras if str(x.get("rel") or "") not in val_rels]
+    out = list(case_map.values()) + extras_f
+    out.sort(key=lambda x: (x.get("rel") or "", x.get("label") or ""))
+    return out
+
+
 def merge_gab_viewable_lists(*lists: list[dict]) -> list[dict]:
     """여러 폴더 스캔 결과를 rel 기준 중복 제거 후 갑 번호 순 정렬."""
     seen: set[str] = set()
@@ -1207,13 +1294,26 @@ def build_meta(md_path: Path) -> dict:
     # 포털 `/serve/` 경로 = 저장소 상대 경로. 제출 정본은 `행정심판청구(최종)/`(start.js가 `행정심판최종본/` 폴더만 있는 클론은 거울 경로로 대체).
     final_root = "행정심판청구(최종)"
     folder_dated = f"{final_root}/{prefix}"
-    tab_sources = {
-        "overview": f"{folder_dated}/{prefix}_00_개요_README_younsu_허브.md",
-        "appeal": f"{final_root}/{prefix}_01_행정심판청구서_최종.md",
-        "gab": f"{folder_dated}/{prefix}_별지_갑호증_목록_드롭다운.md",
-        "appendix": f"{final_root}/{prefix}_별지_사실관계_시간축_정리표.md",
-        "injunction": f"{final_root}/{prefix}_02_집행정지신청서_최종.md",
-    }
+    # `행정심판청구(최종)/{prefix}/` 아래에 01·02·별지가 모두 있으면(예: 260405) 그 경로만 사용.
+    # 구버전(260404 등)은 01·02·시간축은 최종 루트, 개요·갑목록만 `{prefix}/` 하위.
+    if md_path.parent.name == prefix:
+        base = folder_dated
+        # 작업 허브·`<details>` 갑 목록: `행정심판청구(최종)/작업보조/`(포털 탭 아님). 탭은 제출 정본 MD만.
+        tab_sources = {
+            "appeal": f"{base}/{prefix}_01_행정심판청구서.md",
+            "gab1": f"{base}/{prefix}_별지제1호_증거자료_목록.md",
+            "gab2": f"{base}/{prefix}_별지제2호_주요인용판례_및_적용주석.md",
+            "gab3": f"{base}/{prefix}_별지제3호_사실관계_시간축_정리표.md",
+            "injunction": f"{base}/{prefix}_02_집행정지신청서.md",
+        }
+    else:
+        tab_sources = {
+            "appeal": f"{final_root}/{prefix}_01_행정심판청구서.md",
+            "gab1": f"{final_root}/{prefix}_별지제1호_증거자료_목록.md",
+            "gab2": f"{final_root}/{prefix}_별지제2호_주요인용판례_및_적용주석.md",
+            "gab3": f"{final_root}/{prefix}_별지제3호_사실관계_시간축_정리표.md",
+            "injunction": f"{final_root}/{prefix}_02_집행정지신청서.md",
+        }
     return {
         "siteTitle": "농원근린공원 행정심판청구",
         "siteSubtitle": "집행정지신청 병합 · 인천광역시 행정심판위원회 심리 참고",
@@ -1226,12 +1326,13 @@ def build_meta(md_path: Path) -> dict:
         "tabSources": tab_sources,
         "appeal": {
             "heading": "행정심판 청구",
-            "case": "농원근린공원 사실상 준공처분 취소 및 인가 조건(통행 확보) 이행 청구",
+            "case": "농원근린공원 사실상 준공 외관 조치의 취소 및 인가 조건(통행 확보) 이행 청구",
             "party": "청구인 김찬식(연수구 동춘동 198번지 일원 대표) / 피청구인 인천광역시 연수구청장",
             "points": [
                 "핵심 갑호증(갑 제1호증 분할 1-1~1-13, 갑 제2호증~갑 제7-2호증, 갑 제8-1·8-2호증, 갑 제9-1·9-7호증 등): 본문 쟁점별 직접 인용.",
                 "보충 갑호증(갑 제10호증 이하): 전자매체(USB) 편철·증거총목과 함께 제출.",
-                "인용 대법원 등 판례: 국가법령정보센터 사건번호·원문(갑호증 제외). 검증본은 `행정심판청구(증거)/최종/법령정보/`.",
+                "⚠ 포털·/serve/ 실제 열람: 갑호증·법령정보 모두 `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/` 조판본이 있으면 그 PDF(꼬리말 포함)를 우선 반환한다. 제출 정본 경로로 요청해도 동일.",
+                "인용 판례 링크: `portal-data.json`의 `precedentFiles`는 `pdf_2_pdf/법령정보/`를 스캔·병합한다. 파일명에 `2008두167` 형식이 들어가야 본문 사건번호와 매칭된다.",
                 "증거 실물·파일명은 청구서 「증거 편철·파일명·전수조사 유의」 및 tools/audit_gab_evidence_folder.py·survey_gab_evidence_full.py 로 본 화면·제출본을 맞출 것.",
             ],
         },
@@ -1242,6 +1343,7 @@ def build_meta(md_path: Path) -> dict:
             "points": [
                 "본안 행정심판과 동시 제출·갑호증 편철은 본 청구서 증거 목록과 동일(집행정지신청서 붙임 참조).",
                 "긴급성·회복하기 어려운 손해 등은 집행정지신청서 본문(대법원 91누13441 등)에 정리.",
+                "⚠ 포털 열람은 `pdf_2_pdf/{갑호증|법령정보}/` 조판본 우선 — 제출본 스캔본과 화면이 다를 수 있음.",
             ],
         },
         "searchHints": [
@@ -1256,14 +1358,29 @@ def main() -> None:
         raise FileNotFoundError(f"청구서 MD 없음: {_MD}")
     md_path = _MD
     raw = md_path.read_text(encoding="utf-8")
+    evidence_rows = parse_evidence_block(raw)
+    evidence_src = raw
+    # 청구서에 증거 목록이 없고 별지 제1호에만 있는 구성(260405 등)
+    if len(evidence_rows) < 3:
+        prefix = md_path.name.split("_")[0]
+        alt = md_path.parent / f"{prefix}_별지제1호_증거자료_목록.md"
+        if alt.is_file():
+            alt_raw = alt.read_text(encoding="utf-8")
+            alt_rows = parse_evidence_block(alt_raw)
+            if len(alt_rows) > len(evidence_rows):
+                evidence_rows = alt_rows
+                evidence_src = alt_raw
     gab_files = merge_gab_viewable_lists(
         list_viewable_under_repo_rel(GAB_DIR_REL, sort_gab=True),
         list_viewable_under_repo_rel(GAB_SURVEY_DIR_REL, sort_gab=True),
     )
-    evidence = merge_all_gab_range_rows(parse_evidence_block(raw), gab_files)
+    evidence = merge_all_gab_range_rows(evidence_rows, gab_files)
     meta = build_meta(md_path)
-    meta["evidenceTabMarkdown"] = extract_evidence_section_markdown(raw)
-    meta["precedentFiles"] = list_law_info_verification_pdfs()
+    meta["evidenceTabMarkdown"] = extract_evidence_section_markdown(evidence_src)
+    meta["precedentFiles"] = merge_precedent_pdf_entries(
+        list_law_info_verification_pdfs(),
+        list_pdf2_law_verification_pdfs(),
+    )
     meta["gabFiles"] = gab_files
     meta["attachFiles"] = list_viewable_under_repo_rel(ATTACH_DIR_REL)
     meta["footerLine"] = (

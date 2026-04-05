@@ -2,6 +2,14 @@
 
 /**
  * public/ 정적 서빙 + 저장소 내 화이트리스트 경로만 /serve/ 로 열람 (로컬·배포 공통)
+ *
+ * ⚠⚠ 갑호증·법령정보 — 조판본 강제 우선 (꼬리말·여백 반영본)
+ * ----------------------------------------------------------------
+ * `resolveRepoFile()` 는 요청 경로가 `행정심판청구(증거)/{최종/,}{갑호증|법령정보}/…` 이면
+ * **먼저** `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/…` 에 대응하는 파일이 있는지 본다.
+ * 있으면 URL 경로는 그대로 두고 **디스크에서는 조판 PDF(또는 mp4 등)** 만 연다.
+ * 이 동작이 없으면 포털은 제출본 스캔·원본 JPG 에 머물러 꼬리말 없는 썸네일·열화된 열람이 된다.
+ * 조판 생성: `python tools/evidence_pdf_official_footer.py` (저장소 루트 younsu).
  */
 const http = require("http");
 const fs = require("fs");
@@ -9,27 +17,57 @@ const path = require("path");
 const os = require("os");
 
 const publicDir = path.join(__dirname, "public");
-/** 화면 제목·부제·기준일 등 — `web/source`(편집 원본). `npm start` 시 `/source/…` 로 서빙 */
-const sourceWebDir = path.join(__dirname, "..", "source");
-const repoRoot = process.env.COMMISSION_REPO_ROOT
+/** 화면 제목·부제·기준일 등 — `public/source`. `npm start` 시 `/source/…` 로 서빙 */
+const sourceWebDir = path.join(__dirname, "public", "source");
+const defaultRepoRoot = path.resolve(__dirname, "..", "..");
+const envRepoRoot = process.env.COMMISSION_REPO_ROOT
   ? path.resolve(process.env.COMMISSION_REPO_ROOT)
-  : path.resolve(__dirname, "..", "..");
+  : null;
 const port = Number(process.env.PORT) || 3000;
 
 /** Docker 등에서 monorepo 루트가 없으면 /serve 비활성화(잘못된 루트 노출 방지) */
-function repoHasTrackedLayout() {
+function repoHasTrackedLayoutAt(root) {
+  if (!root) return false;
   try {
     return (
-      fs.existsSync(path.join(repoRoot, "행정심판최종본")) ||
-      fs.existsSync(path.join(repoRoot, "행정심판청구(증거)", "최종")) ||
-      fs.existsSync(path.join(repoRoot, "행정심판청구(증거)")) ||
-      fs.existsSync(path.join(repoRoot, "행정심판청구(최종)"))
+      fs.existsSync(path.join(root, "행정심판최종본")) ||
+      fs.existsSync(path.join(root, "행정심판청구(증거)", "최종")) ||
+      fs.existsSync(path.join(root, "행정심판청구(증거)")) ||
+      fs.existsSync(path.join(root, "행정심판청구(최종)"))
     );
   } catch {
     return false;
   }
 }
-const serveRepoFiles = repoHasTrackedLayout();
+
+/**
+ * `COMMISSION_REPO_ROOT`(예: USB 복사본)에 정본 트리가 없으면 /serve·저장이 막힙니다.
+ * 로컬 younsu 클론에서 편집할 때는 monorepo 루트로 자동 대체합니다.
+ */
+let repoRoot = defaultRepoRoot;
+if (envRepoRoot) {
+  if (repoHasTrackedLayoutAt(envRepoRoot)) {
+    repoRoot = envRepoRoot;
+  } else if (repoHasTrackedLayoutAt(defaultRepoRoot)) {
+    process.stderr.write(
+      "[commission-portal] COMMISSION_REPO_ROOT가 저장소 트리 조건을 만족하지 않습니다:\n" +
+        `  ${envRepoRoot}\n` +
+        "  (행정심판청구(최종) 등이 없으면 MD 저장·/serve/가 되지 않습니다.)\n" +
+        "  monorepo 기본 루트로 대체합니다:\n" +
+        `  ${defaultRepoRoot}\n`
+    );
+    repoRoot = defaultRepoRoot;
+  } else {
+    repoRoot = envRepoRoot;
+    process.stderr.write(
+      "[commission-portal] COMMISSION_REPO_ROOT와 monorepo 기본 루트 모두 트리 조건을 만족하지 않습니다.\n" +
+        `  env: ${envRepoRoot}\n` +
+        `  기본: ${defaultRepoRoot}\n`
+    );
+  }
+}
+
+const serveRepoFiles = repoHasTrackedLayoutAt(repoRoot);
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -83,6 +121,8 @@ function isAllowedRepoRel(relPosix) {
   if (norm.startsWith("행정심판청구(증거)/법령정보/")) return true;
   if (norm.startsWith("행정심판청구(증거)/(국가법령정보)판례모음/")) return true;
   if (norm.startsWith("행정심판청구(증거)/작업/")) return true;
+  /** 조판본 직접 URL(링크·북마크) — `resolveRepoFile`이 해당 파일을 그대로 연다 */
+  if (norm.startsWith("행정심판청구(증거)/pdf_2_pdf/")) return true;
   return false;
 }
 
@@ -99,6 +139,60 @@ function isResolvedUnderRepoRoot(resolved, rootResolved) {
   return true;
 }
 
+/**
+ * `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/…` — tools/evidence_pdf_official_footer.py 산출.
+ * URL은 원본 rel을 유지하되, 조판 PDF가 있으면 그 파일을 연다.
+ */
+function pdf2PdfAlternateNorm(relPosix) {
+  const n = relPosix.replace(/\\/g, "/").normalize("NFC");
+  const pairs = [
+    ["행정심판청구(증거)/최종/갑호증/", "행정심판청구(증거)/pdf_2_pdf/갑호증/"],
+    ["행정심판청구(증거)/갑호증/", "행정심판청구(증거)/pdf_2_pdf/갑호증/"],
+    ["행정심판청구(증거)/최종/법령정보/", "행정심판청구(증거)/pdf_2_pdf/법령정보/"],
+    ["행정심판청구(증거)/법령정보/", "행정심판청구(증거)/pdf_2_pdf/법령정보/"],
+  ];
+  for (const [from, to] of pairs) {
+    if (!n.startsWith(from)) continue;
+    const tail = n.slice(from.length);
+    if (!tail) return null;
+    const ext = path.posix.extname(tail).toLowerCase();
+    const video = [".mp4", ".webm", ".mov", ".avi"];
+    if (video.includes(ext)) {
+      return to + tail;
+    }
+    const rasterOrPdf = [
+      ".jpg",
+      ".jpeg",
+      ".jpe",
+      ".png",
+      ".gif",
+      ".webp",
+      ".pdf",
+    ];
+    if (rasterOrPdf.includes(ext)) {
+      const base = tail.slice(0, -ext.length);
+      return to + base + ".pdf";
+    }
+    return null;
+  }
+  return null;
+}
+
+function tryPdf2PdfResolved(relPosix, repoRoot, rootResolved) {
+  const altNorm = pdf2PdfAlternateNorm(relPosix);
+  if (!altNorm) return null;
+  const parts = altNorm.split("/").filter(Boolean);
+  const full = path.resolve(path.join(repoRoot, ...parts));
+  if (!isResolvedUnderRepoRoot(full, rootResolved)) return null;
+  try {
+    const st = fs.statSync(full);
+    if (st.isFile()) return full;
+  } catch {
+    /* 없음 */
+  }
+  return null;
+}
+
 function resolveRepoFile(relPosix) {
   const norm = relPosix
     .replace(/\\/g, "/")
@@ -113,6 +207,9 @@ function resolveRepoFile(relPosix) {
   if (!isResolvedUnderRepoRoot(resolved, rootResolved)) {
     return null;
   }
+  /** 갑호증·법령정보: `/serve/` 요청 URL은 원본 경로를 유지하되, 디스크에서는 `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/…` 파일이 있으면 **항상 그 PDF(또는 mp4 등)를 먼저** 연다(포털 우측 패널·모달 공통). */
+  const pdf2Early = tryPdf2PdfResolved(norm, repoRoot, rootResolved);
+  if (pdf2Early) return pdf2Early;
   /** 1순위: 요청한 경로 그대로 */
   try {
     const st = fs.statSync(resolved);
@@ -150,6 +247,50 @@ function resolveRepoFile(relPosix) {
       }
     }
   }
+  /**
+   * `…(최종)/YYMMDD/YYMMDD_파일.md` 가 없을 때 루트의 `파일.md`(날짜 접두 제거) 시도 — USB 번들·루트 복제본과 tabSources 정본 경로 병행.
+   */
+  const flatFinal = norm.match(/^행정심판청구\(최종\)\/(\d{6})\/\1_(.+)$/);
+  if (flatFinal) {
+    for (const base of ["행정심판청구(최종)", "행정심판최종본"]) {
+      const flatNorm = `${base}/${flatFinal[2]}`;
+      const flatParts = flatNorm.split("/").filter(Boolean);
+      const flatResolved = path.resolve(path.join(repoRoot, ...flatParts));
+      if (isResolvedUnderRepoRoot(flatResolved, rootResolved)) {
+        try {
+          const st = fs.statSync(flatResolved);
+          if (st.isFile()) return flatResolved;
+        } catch {
+          /* 없음 */
+        }
+      }
+    }
+  }
+  /**
+   * 조판 `pdf_2_pdf/법령정보/` 가 클론에 없을 때(미생성·미동기) 동일 파일명의 제출본을 연다.
+   * 포털 `precedentFiles`·인용 링크는 조판 경로를 쓰므로, 여기 없으면 열람이 전부 실패하던 문제를 막는다.
+   */
+  if (norm.startsWith("행정심판청구(증거)/pdf_2_pdf/법령정보/")) {
+    const tail = norm.slice("행정심판청구(증거)/pdf_2_pdf/법령정보/".length);
+    if (tail) {
+      for (const prefix of [
+        "행정심판청구(증거)/최종/법령정보/",
+        "행정심판청구(증거)/법령정보/",
+      ]) {
+        const altNorm = prefix + tail;
+        if (!isAllowedRepoRel(altNorm)) continue;
+        const altParts = altNorm.split("/").filter(Boolean);
+        const altResolved = path.resolve(path.join(repoRoot, ...altParts));
+        if (!isResolvedUnderRepoRoot(altResolved, rootResolved)) continue;
+        try {
+          const st = fs.statSync(altResolved);
+          if (st.isFile()) return altResolved;
+        } catch {
+          /* 없음 */
+        }
+      }
+    }
+  }
   return resolved;
 }
 
@@ -171,10 +312,13 @@ function resolveRepoFileExact(relPosix) {
 
 /** 로컬 편집기에서만 저장 허용(화이트리스트). 경로 = `행정심판청구(최종)/`. */
 const WRITABLE_MD_REL = new Set([
-  "행정심판청구(최종)/260404_01_행정심판청구서_최종.md",
-  "행정심판청구(최종)/260404_02_집행정지신청서_최종.md",
-  "행정심판청구(최종)/260404_별지_사실관계_시간축_정리표.md",
-  "행정심판청구(최종)/260404/260404_별지_갑호증_목록_드롭다운.md",
+  "행정심판청구(최종)/작업보조/개요_README_younsu_허브.md",
+  "행정심판청구(최종)/작업보조/별지_갑호증_목록_드롭다운.md",
+  "행정심판청구(최종)/260405/260405_01_행정심판청구서.md",
+  "행정심판청구(최종)/260405/260405_02_집행정지신청서.md",
+  "행정심판청구(최종)/260405/260405_별지제1호_증거자료_목록.md",
+  "행정심판청구(최종)/260405/260405_별지제2호_주요인용판례_및_적용주석.md",
+  "행정심판청구(최종)/260405/260405_별지제3호_사실관계_시간축_정리표.md",
 ]);
 
 const MAX_SAVE_BODY = 12 * 1024 * 1024;
@@ -206,7 +350,10 @@ function sendFile(res, absPath, method) {
     }
     const ext = path.extname(absPath).toLowerCase();
     const type = MIME[ext] || "application/octet-stream";
-    res.writeHead(200, { "Content-Type": type, "Cache-Control": "public, max-age=60" });
+    /** 편집·저장 직후 본문 갱신이 캐시에 막히지 않도록 MD는 재검증 없이 매번 새로 받기 */
+    const cacheCtl =
+      ext === ".md" ? "no-store" : "public, max-age=60";
+    res.writeHead(200, { "Content-Type": type, "Cache-Control": cacheCtl });
     if (method === "HEAD") {
       res.end();
       return;
@@ -249,9 +396,40 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ ok: false, error: "Resolve failed" }));
         return;
       }
+      await fs.promises.mkdir(path.dirname(abs), { recursive: true });
       await fs.promises.writeFile(abs, content, { encoding: "utf8" });
+      /** `…(최종)/YYMMDD/YYMMDD_*.md` 저장 시 동일 내용을 `…(최종)/YYMMDD_*.md` 직하에도 기록(USB·루트 정본 병행). */
+      let mirrorRel = null;
+      const relNfc = rel.normalize("NFC");
+      if (relNfc.startsWith("행정심판청구(최종)/")) {
+        const segs = relNfc.split("/").filter(Boolean);
+        if (segs.length >= 3 && /^\d{6}$/.test(segs[1])) {
+          const flatName = segs[segs.length - 1];
+          if (flatName && flatName.endsWith(".md")) {
+            mirrorRel = `행정심판청구(최종)/${flatName}`;
+            const mirrorParts = mirrorRel.split("/").filter(Boolean);
+            const mirrorAbs = path.resolve(path.join(repoRoot, ...mirrorParts));
+            const rootResolved = path.resolve(repoRoot);
+            if (
+              mirrorAbs !== abs &&
+              isResolvedUnderRepoRoot(mirrorAbs, rootResolved) &&
+              isAllowedRepoRel(mirrorRel)
+            ) {
+              await fs.promises.mkdir(path.dirname(mirrorAbs), { recursive: true });
+              await fs.promises.writeFile(mirrorAbs, content, { encoding: "utf8" });
+            }
+          }
+        }
+      }
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-      res.end(JSON.stringify({ ok: true, rel, bytes: Buffer.byteLength(content, "utf8") }));
+      res.end(
+        JSON.stringify({
+          ok: true,
+          rel,
+          mirrorRel,
+          bytes: Buffer.byteLength(content, "utf8"),
+        })
+      );
     } catch (e) {
       const msg = e && e.message === "payload too large" ? "Too large" : "Write failed";
       res.writeHead(
@@ -376,9 +554,11 @@ server.on("error", (err) => {
 
 server.listen(port, "0.0.0.0", () => {
   process.stdout.write(`commission-portal listening on ${port}\n`);
+  process.stdout.write(`repo root: ${repoRoot}\n`);
   if (!serveRepoFiles) {
     process.stdout.write(
-      "repo file serve (/serve/) disabled — no 행정심판청구(최종) or 행정심판청구(증거)/최종/ at repo root. Set COMMISSION_REPO_ROOT if needed.\n"
+      "repo file serve (/serve/) disabled — no 행정심판청구(최종) or 행정심판청구(증거)/최종/ at repo root.\n" +
+        "  Fix: clone younsu 루트에서 npm start 하거나, COMMISSION_REPO_ROOT를 정본 폴더가 있는 경로로 맞추세요.\n"
     );
   }
 });

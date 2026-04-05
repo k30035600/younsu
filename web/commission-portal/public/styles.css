@@ -33,9 +33,13 @@
   --fs-small: 0.9375rem;
   --fs-caption: 0.875rem;
   --fs-foot: 0.8125rem;
-  /* 원문·화면 기본 줄간격(본문 가독성) */
+  /* 원문·화면 기본 줄간격(본문 가독성). 서면 탭의 `---`(hr) 높이·청구서 제목 h1 줄간도 동일 배수를 씁니다. */
   --lh-doc: 1.65;
   --lh-tight: 1.55;
+  /* 본문·오른쪽 패널 사이(.split-shell gap) */
+  --layout-split-gap: 30px;
+  /* PDF·이미지 전체화면 모달 #viewer-body 좌우 */
+  --viewer-modal-pad-x: 50px;
 }
 
 html {
@@ -51,6 +55,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   font-family: var(--font-ui);
@@ -63,6 +68,14 @@ body {
   text-justify: inter-character;
   word-break: keep-all;
   overflow-wrap: break-word;
+}
+
+/* 헤더·탭·푸터 사이 영역을 채움 — 데스크톱에서 본문·오른쪽 패널 높이 극대화 */
+body > main.main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 컨트롤·코드·캔버스/썸네일 정렬은 양쪽 맞춤 제외 */
@@ -108,8 +121,11 @@ textarea,
 }
 
 .site-header .inner {
-  max-width: min(96rem, calc(100% - 2rem));
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
 }
 
 .site-header h1 {
@@ -176,16 +192,6 @@ textarea,
 
 .tab-panel .md-body {
   font-family: var(--font-doc);
-}
-
-/* 개요 탭: 제출 정본이 아닌 작업·참고 허브 → 고딕 */
-#section-overview .tab-panel .md-body {
-  font-family: var(--font-ui);
-}
-
-/* 서면 탭 본문: 문서 제목(# …) 가운데 정렬(행정심판청구서·집행정지신청서 등) */
-.tab-panel .md-content > h1:first-of-type {
-  text-align: center;
 }
 
 .tab-panel--compact .md-body {
@@ -301,9 +307,21 @@ textarea,
   min-height: 62vh;
 }
 
+/* 세로 스크롤바 등장 시 가로폭이 흔들리지 않게 — PDF.js fitWidth ResizeObserver 루프 완화 */
+.cite-preview-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll,
+.detail-gab3-pdf-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  scrollbar-gutter: stable;
+}
+
 /** 묶음 인라인: 확대/축소 바 숨김 — 더블클릭으로 전체 화면(바 표시) */
 .pdf-viewer-wrap--toolbar-hidden .pdf-viewer-scroll {
   cursor: zoom-in;
+}
+
+/** 오른쪽 패널: 너비에 맞춘 PDF(가로 스크롤 숨김, 세로만) */
+.pdf-viewer-wrap--fit-width .pdf-viewer-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .pdf-viewer-wrap--modal {
@@ -506,10 +524,30 @@ textarea,
   width: 100%;
 }
 
+/* 개요·청구·별지·집행정지 MD 편집 — 뷰포트 전체(스크롤은 본문 textarea) */
+.md-editor-modal {
+  justify-content: flex-start;
+}
+
+.md-editor-modal header.viewer-toolbar {
+  flex-shrink: 0;
+}
+
 .md-editor-modal .md-editor-dialog {
   display: flex;
   flex-direction: column;
-  max-height: min(90vh, 48rem);
+  flex: 1 1 100%;
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  /* 모바일 주소창·노치: vh 폴백 후 dvh */
+  height: 100vh;
+  max-height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  border-radius: 0;
 }
 
 .md-editor-heading-block {
@@ -545,24 +583,98 @@ textarea,
   flex-shrink: 0;
 }
 
-.md-editor-hint {
-  margin: 0 0 0.75rem;
+.md-editor-modal header.viewer-toolbar.md-editor-toolbar {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  row-gap: 0.5rem;
+}
+
+.md-editor-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 max(1rem, env(safe-area-inset-left, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px))
+    max(1rem, env(safe-area-inset-right, 0px));
+  box-sizing: border-box;
+}
+
+.md-editor-split {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  gap: clamp(0.65rem, 2vw, 1rem);
+  min-height: 0;
+  align-items: stretch;
+}
+
+.md-editor-pane {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.md-editor-pane-label {
+  margin: 0 0 0.35rem;
   font-size: var(--fs-caption);
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.md-editor-preview-mount {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: clamp(0.65rem, 2.5vw, 1rem) clamp(0.75rem, 2.5vw, 1.15rem)
+    clamp(0.85rem, 2.5vw, 1.25rem);
+  background: #fff;
+  border: 1px solid var(--border-doc);
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+  font-family: var(--font-doc);
+  font-size: var(--fs-body);
+  line-height: var(--lh-doc);
+  color: var(--text-body);
+}
+
+.md-editor-preview-mount .md-content {
+  max-width: 100%;
+}
+
+.md-editor-preview-sep {
+  margin: 1.25rem 0;
+  border: none;
+  border-top: 1px solid var(--border-doc);
+}
+
+.md-editor-preview-err {
+  margin: 0.5rem 0 0;
+}
+
+.md-editor-pane--source {
+  min-width: min(100%, 22rem);
+}
+
+.md-editor-pane--source .md-editor-textarea {
+  flex: 1 1 auto;
 }
 
 .md-editor-textarea {
   width: 100%;
-  flex: 1 1 12rem;
-  min-height: 16rem;
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 0.75rem 1rem;
   font-family: ui-monospace, "Cascadia Code", "Malgun Gothic", monospace;
   font-size: var(--fs-caption);
   line-height: 1.45;
   border: 1px solid var(--border-doc);
   border-radius: 4px;
-  resize: vertical;
+  resize: none;
   color: var(--text-body);
   background: #fafbfc;
 }
@@ -583,6 +695,96 @@ textarea,
   margin: 0.5rem 0 0;
   font-size: var(--fs-caption);
   min-height: 1.25em;
+  flex-shrink: 0;
+}
+
+/* MD 편집 — 중간 화면: 가로 유지, 비율만 조정 */
+@media (max-width: 75rem) {
+  .md-editor-pane--preview {
+    flex: 1 1 48%;
+  }
+
+  .md-editor-pane--source {
+    flex: 1 1 52%;
+  }
+}
+
+/* MD 편집 — 태블릿·폰: 세로 스택 (위 미리보기 → 아래 원문) */
+@media (max-width: 60rem) {
+  .md-editor-split {
+    flex-direction: column;
+  }
+
+  .md-editor-pane--preview,
+  .md-editor-pane--source {
+    flex: 1 1 auto;
+    min-height: min(36dvh, 40vh, 18rem);
+    max-height: none;
+  }
+
+  .md-editor-pane--source {
+    min-width: 0;
+    min-height: min(32dvh, 38vh, 16rem);
+  }
+
+  .md-editor-preview-mount {
+    font-size: clamp(0.9375rem, 2.8vw, 1rem);
+  }
+}
+
+/* MD 편집 — 좁은 폰: 툴바·단추 세로 배치, 터치 최소 높이 */
+@media (max-width: 40rem) {
+  .md-editor-modal header.viewer-toolbar.md-editor-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: max(0.5rem, env(safe-area-inset-top, 0px)) 0.75rem 0.65rem;
+  }
+
+  .md-editor-heading-block {
+    margin-right: 0;
+  }
+
+  .md-editor-toolbar-actions {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .md-editor-toolbar-actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+  }
+
+  .md-editor-body {
+    padding-left: max(0.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+
+  .md-editor-pane-label {
+    font-size: var(--fs-foot);
+  }
+
+  .md-editor-textarea {
+    font-size: max(0.875rem, 16px);
+    min-height: 12rem;
+  }
+}
+
+/* MD 편집 — 가로 모드·낮은 뷰포트: 패널 높이 상한으로 스크롤 유도 */
+@media (max-height: 32rem) and (orientation: landscape) {
+  .md-editor-split {
+    flex-direction: row;
+  }
+
+  .md-editor-pane--preview,
+  .md-editor-pane--source {
+    min-height: 0;
+    max-height: calc(100dvh - 8.5rem);
+    max-height: calc(100vh - 8.5rem);
+    flex: 1 1 50%;
+  }
 }
 
 .md-editor-status.is-ok {
@@ -597,13 +799,15 @@ textarea,
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.65rem 1.5rem;
+  padding: 0.65rem max(0.75rem, env(safe-area-inset-left, 0px)) 0.65rem
+    max(0.75rem, env(safe-area-inset-right, 0px));
   background: #dce1e8;
   border-bottom: 1px solid var(--border-doc);
-  max-width: min(96rem, calc(100% - 2rem));
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   width: 100%;
   font-family: var(--font-ui);
+  flex-shrink: 0;
 }
 
 .tabs-row {
@@ -699,33 +903,43 @@ textarea,
 }
 
 .main {
-  flex: 1;
-  max-width: min(96rem, calc(100% - 2rem));
-  margin: 1rem auto 1.5rem;
-  padding: 2rem 2.25rem 2.5rem;
-  width: calc(100% - 2rem);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem max(0.65rem, env(safe-area-inset-left, 0px)) 0.65rem
+    max(0.65rem, env(safe-area-inset-right, 0px));
   background: var(--surface);
   border: 1px solid var(--border-doc);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border-radius: 0;
+  box-shadow: none;
   font-family: var(--font-ui);
 }
 
 .split-shell {
   display: flex;
   flex-direction: column;
-  gap: 1.45rem;
+  gap: var(--layout-split-gap);
   align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .split-main {
   min-width: 0;
   flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .cite-preview-aside {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .cite-preview-panel {
@@ -734,6 +948,40 @@ textarea,
   border: 1px solid var(--border-doc);
   border-radius: 6px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 안내 박스·미리보기 본문을 한 컨테이너에서 세로 스크롤(안내가 본문과 함께 이동) */
+.cite-preview-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-family: var(--font-ui);
+}
+
+.cite-preview-intro {
+  flex-shrink: 0;
+}
+
+.cite-preview-intro--boxed {
+  border: 1px solid var(--border-doc);
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.cite-preview-title,
+.cite-preview-lead {
+  flex-shrink: 0;
 }
 
 .cite-preview-title {
@@ -752,8 +1000,8 @@ textarea,
 }
 
 .cite-preview-lead {
-  margin: 0 0 0.65rem;
-  font-size: var(--fs-caption);
+  margin: 0;
+  font-size: var(--fs-foot);
   font-family: var(--font-ui);
   color: var(--muted);
   line-height: 1.55;
@@ -761,16 +1009,44 @@ textarea,
   white-space: pre-line;
 }
 
-.cite-preview-mount {
-  min-height: 10rem;
-  max-height: min(78vh, 48rem);
-  overflow: auto;
-  font-family: var(--font-ui);
+.cite-preview-lead code {
+  font-size: 0.92em;
+  word-break: break-all;
 }
 
-.cite-preview-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
-  min-height: 36vh;
-  max-height: min(58vh, 36rem);
+.cite-preview-mount {
+  flex: 0 0 auto;
+  min-height: 4rem;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.cite-preview-mount:has(.pdf-viewer-wrap--fit-width),
+.cite-preview-mount:has(.detail-gab3-grid) {
+  overflow-x: hidden;
+}
+
+.cite-preview-mount .detail-gab3-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
+}
+
+.cite-preview-mount .detail-gab3-item {
+  min-width: 0;
+}
+
+/* 인라인 PDF: 페이지는 .cite-preview-scroll 에서 함께 스크롤 */
+.cite-preview-mount > .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.cite-preview-mount .detail-gab3-grid .pdf-viewer-wrap--inline .pdf-viewer-scroll,
+.cite-preview-mount .doc-preview-gab-files .detail-gab3-pdf-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  min-height: 0;
+  max-height: none;
+  overflow-y: visible;
 }
 
 .cite-preview-inline-hint {
@@ -816,25 +1092,153 @@ textarea,
   margin-top: 0.5rem;
 }
 
+/* 오른쪽 미리보기: 더블클릭 시 패널(열) 높이에 맞추어 확장 — 브라우저 전체 모달이 아님 */
+body.cite-preview-expanded .cite-preview-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: min(88dvh, 42rem);
+  max-height: min(92dvh, 50rem);
+}
+
+body.cite-preview-expanded .cite-preview-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+body.cite-preview-expanded .cite-preview-mount {
+  flex: 0 0 auto;
+  min-height: 8rem;
+  max-height: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+body.cite-preview-expanded .cite-preview-inline-hint,
+body.cite-preview-expanded .cite-preview-err {
+  flex-shrink: 0;
+}
+
+body.cite-preview-expanded .pdf-viewer-wrap--inline {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.cite-preview-expanded .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  flex: 1 1 auto;
+  min-height: min(55vh, 22rem);
+  max-height: none;
+}
+
+/* 확장 패널에서도 단일 PDF는 마운트 스크롤과 동일(이중 스크롤·하단 잘림 방지) */
+body.cite-preview-expanded .cite-preview-mount > .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+body.cite-preview-expanded .cite-preview-video-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body.cite-preview-expanded .cite-preview-video-inline {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: min(40vh, 18rem);
+  max-height: min(calc(100vh - 14rem), 78vh);
+}
+
+body.cite-preview-expanded .cite-preview-img-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+body.cite-preview-expanded .cite-preview-img-wrap .viewer-img {
+  flex: 1 1 auto;
+  width: 100%;
+  max-height: min(calc(100vh - 14rem), 80vh);
+  object-fit: contain;
+}
+
+body.cite-preview-expanded .detail-gab3-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body.cite-preview-expanded .detail-gab3-pdf-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
+  min-height: min(48vh, 24rem);
+  max-height: none;
+}
+
 @media (min-width: 64rem) {
+  /* 좌열: 좌 50px · 우 25px, 우열: 좌 25px · 우 50px (가운데 gap과 맞물림) */
+  .main {
+    padding-top: 0.5rem;
+    padding-bottom: 0.65rem;
+    padding-left: max(0px, env(safe-area-inset-left, 0px));
+    padding-right: max(0px, env(safe-area-inset-right, 0px));
+  }
+
   .split-shell {
     flex-direction: row;
-    align-items: flex-start;
-    gap: 1.25rem;
+    align-items: stretch;
+    gap: var(--layout-split-gap);
   }
 
   .split-main {
     flex: 1 1 56%;
     min-width: 0;
+    padding: 0 25px 0 50px;
+    box-sizing: border-box;
   }
 
   .cite-preview-aside {
     flex: 1 1 40%;
     max-width: 44%;
     min-width: 0;
-    position: sticky;
-    top: 0.75rem;
-    align-self: flex-start;
+    /* sticky 제거: 창 스크롤 시 좌측 본문과 우측「갑호증 및 법령정보 참고」가 함께 위로 이동 */
+    align-self: stretch;
+    padding: 0 50px 0 25px;
+    box-sizing: border-box;
+  }
+
+  /* 본문 열과 동일 높이로 패널을 채우고, 스크롤은 .cite-preview-scroll 한 곳에서만 */
+  .cite-preview-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  body.cite-preview-expanded .split-shell {
+    align-items: stretch;
+  }
+
+  body.cite-preview-expanded .cite-preview-aside {
+    align-self: stretch;
+    max-height: calc(100vh - 0.75rem);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  body.cite-preview-expanded .cite-preview-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+    overflow: hidden;
   }
 }
 
@@ -1270,6 +1674,33 @@ textarea,
   grid-template-columns: unset;
 }
 
+/** 법령정보(판례) PDF — 쪽별 썸네일 그리드 */
+.detail-gab3-grid--law-thumbs {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 0.65rem;
+}
+
+.detail-gab3-item--law-thumb figcaption {
+  margin-bottom: 0.35rem;
+}
+
+.law-precedent-thumb-canvas {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  margin: 0 auto;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--border-doc);
+  border-radius: 4px;
+}
+
+.law-precedent-thumb-canvas:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .detail-files .detail-gab3-pdf-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
   min-height: 22vh;
   max-height: min(52vh, 34rem);
@@ -1429,6 +1860,8 @@ body.modal-open {
   font-family: var(--font-doc);
   font-size: var(--fs-body);
   line-height: var(--lh-doc);
+  /* `---` 한 줄 = 본문 한 줄(같은 em·--lh-doc) — PDF에서 줄간격을 `--lh-doc`만으로 맞추기 위함 */
+  --md-rhythm-line: calc(1em * var(--lh-doc));
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
@@ -1447,16 +1880,30 @@ body.modal-open {
   font-style: italic;
 }
 
+/* # · ## · ### : 동일 줄간(--lh-doc), 위·아래 여백 통일(미리보기·탭·인용 MD 공통) */
 .md-content h1,
 .md-content h2,
 .md-content h3 {
-  margin: 1.5rem 0 0.65rem;
-  line-height: var(--lh-tight);
+  margin: 1.125rem 0 0.5rem;
+  line-height: var(--lh-doc);
   font-family: var(--font-doc);
   font-weight: 700;
   color: var(--accent);
   text-align: justify;
   text-justify: inter-character;
+}
+
+/* 문서 타이틀: 각 .md-content 블록의 첫 # 만 가운데(MD 편집 미리보기·탭 본문 공통) */
+.md-content > h1:first-of-type {
+  text-align: center;
+  text-justify: auto;
+  margin-top: 0;
+}
+
+/* 같은 블록 안 두 번째 이후 # (예: 말미 「청구인」 서명) — 오른쪽 맞춤 */
+.md-content > h1 ~ h1 {
+  text-align: right !important;
+  text-justify: auto !important;
 }
 
 .md-content h1 {
@@ -1478,8 +1925,41 @@ body.modal-open {
   border: none;
   margin: 0;
   padding: 0;
-  height: calc(1em * var(--lh-doc));
+  height: var(--md-rhythm-line);
   background: transparent;
+}
+
+/**
+ * `---`(hr)로 줄 간격을 맞출 때, 제목·단락 margin이 hr 높이에 더해지지 않도록 함.
+ * 미리보기(.md-editor-preview-mount)·탭 본문·오른쪽 인용 MD(.cite-preview-md) 공통.
+ */
+.md-content :is(h1, h2, h3):has(+ hr) {
+  margin-bottom: 0;
+}
+
+.md-content hr + :is(h1, h2, h3, p) {
+  margin-top: 0;
+}
+
+.md-content p:has(+ hr) {
+  margin-bottom: 0;
+}
+
+.md-content p:empty {
+  display: none;
+}
+
+/**
+ * 행정심판청구·집행정지: h1 줄간만 본문과 동일 배수(가운덤/오른쪽은 위 `.md-content > h1` 규칙).
+ */
+#section-appeal .md-body > .md-content h1,
+#section-injunction .md-body > .md-content h1 {
+  line-height: var(--lh-doc);
+}
+
+#section-appeal .md-body > .md-content h1 + h1,
+#section-injunction .md-body > .md-content h1 + h1 {
+  margin-top: 0;
 }
 
 /* 갑호증 별지 등 `<details>` — 접기·펼치기가 화면에서 분명히 보이도록 */
@@ -1621,7 +2101,7 @@ body.modal-open {
 
 .viewer-body:has(.pdf-viewer-wrap--modal) {
   overflow: hidden;
-  padding: 0;
+  padding: 0 var(--viewer-modal-pad-x);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1629,16 +2109,22 @@ body.modal-open {
 
 .viewer-body:has(.image-viewer-wrap) {
   overflow: hidden;
-  padding: 0;
+  padding: 0 var(--viewer-modal-pad-x);
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
+/* 플렉스 모달: 남는 높이를 스크롤에 할당(inline용 max-height·min-height 제약 해제) */
 .viewer-body .pdf-viewer-wrap--modal {
   flex: 1;
   min-height: 0;
   width: 100%;
+}
+
+.viewer-body .pdf-viewer-wrap--modal .pdf-viewer-scroll {
+  min-height: 0;
+  max-height: none;
 }
 
 .image-viewer-wrap {
@@ -1650,8 +2136,8 @@ body.modal-open {
 }
 
 .viewer-body .image-viewer-wrap .pdf-viewer-scroll {
-  min-height: 40vh;
-  max-height: min(78vh, 52rem);
+  min-height: 0;
+  max-height: none;
 }
 
 /* 모달 PDF·이미지: 마우스 드래그 패닝 + 스크롤(휠·바·터치) 병행 */
@@ -1826,9 +2312,51 @@ body.modal-open {
 }
 
 @media (max-width: 640px) {
+  .site-header {
+    padding: max(1rem, env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right, 0px))
+      1.1rem max(1rem, env(safe-area-inset-left, 0px));
+  }
+
+  .site-header .inner {
+    max-width: 100%;
+  }
+
+  .tabs {
+    max-width: 100%;
+    width: 100%;
+    padding: 0.55rem max(0.65rem, env(safe-area-inset-left, 0px)) 0.6rem
+      max(0.65rem, env(safe-area-inset-right, 0px));
+  }
+
+  .tabs-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tabs-tools-wrap {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
   .main {
     width: calc(100% - 1rem);
-    padding: 1.25rem 1rem 1.75rem;
+    max-width: 100%;
+    margin: 0.65rem auto 1.15rem;
+    padding: 1.25rem max(0.85rem, env(safe-area-inset-left, 0px)) 1.75rem
+      max(0.85rem, env(safe-area-inset-right, 0px));
+  }
+
+  .split-shell {
+    gap: var(--layout-split-gap);
+  }
+
+  .cite-preview-scroll {
+    max-height: min(70dvh, 70vh, 36rem);
+  }
+
+  .cite-preview-panel {
+    padding: 0.65rem max(0.5rem, env(safe-area-inset-left, 0px)) 0.75rem
+      max(0.5rem, env(safe-area-inset-right, 0px));
   }
 
   .md-content p,
