@@ -1,8 +1,8 @@
 {
-  "$schemaNote": "저장소 행정심판청구(증거)/최종/갑호증/ 전용. portal-data.json·gabFiles·빌드 스크립트와 무관하게 이 파일만 편집한다.",
+  "$schemaNote": "저장소 루트 갑호증및법령정보/갑제N호증/·법령정보/ (USB 미러: USB/갑호증및법령정보/).",
   "standalone": true,
-  "physicalRootHint": "D:\\OneDrive\\Cursor\\younsu\\행정심판청구(증거)\\최종\\갑호증",
-  "marker": "행정심판청구(증거)/최종/갑호증/",
+  "physicalRootHint": "D:\\OneDrive\\Cursor\\younsu\\갑호증및법령정보",
+  "marker": "갑호증및법령정보/",
   "folders": [
     { "id": "__root__", "label": "갑호증 루트(파일 직접 배치)" },
     { "id": "갑제1호증", "label": "갑제1호증" },

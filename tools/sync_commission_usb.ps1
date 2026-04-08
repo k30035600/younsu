@@ -1,16 +1,15 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-  USB 번들(1~3): web 포털 단독 실행 + 행정심판청구(증거) 갑호증·법령정보 전체 + 행정심판청구(최종) 루트의 .md·.pdf 만. 번들 루트(기본 CommissionReview_USB)는 Hidden 속성으로 숨김.
-  (4) F:\행정심판청구서제출서류: 한 폴더 안에 갑호증·법령정보 하위 폴더 + 행정심판청구(최종) 루트의 원문 .md·.pdf 만(저장소 `행정심판청구(최종)` 폴더를 한 겹 더 두지 않음).
-  제외: 법령정보\README.md, 최종 루트 README_제출본_백업규칙.md, 구 `…_제출서류` 폴더(번들·F:\ 루트).
-  -ClearUsbTargetsBeforeSync -ConfirmClearUsbTargets: 포맷 없이 번들·제출 폴더·구 런처만 지운 뒤 복사(F: 전체 삭제 아님).
+  행심위 제출용 USB: 드라이브 루트에 (1) 더블클릭 런처 .bat (2) 번들용 — 포털 + 번들 내부 증거·최종 트리 (3) 갑호증및법령정보 — 저장소 `갑호증 및 법령정보` 전체 미러 (4) 제출원문 — `행정심판청구(최종)` 루트 및 최신 yymmdd 폴더의 .md·.pdf 만(하위 폴더 없음).
+  제외: 법령정보\README.md, 최종 README_제출본_백업규칙.md. 구 CommissionReview_USB·행정심판청구서제출서류 폴더는 동기화 시 제거.
+  -ClearUsbTargetsBeforeSync -ConfirmClearUsbTargets: 포맷 없이 위 대상·구 폴더·구 런처만 지운 뒤 복사(F: 전체 삭제 아님).
 
 .PARAMETER RepoRoot
   younsu repo root (parent of web\, folders with evidence and final docs).
 
 .PARAMETER BundlePath
-  USB 번들 폴더 전체 경로. 기본 F:\CommissionReview_USB
+  `번들용` 폴더 전체 경로. 비우면 (LauncherDriveRoot)\번들용
 
 .PARAMETER PromptBundlePath
   실행 시 번들 경로를 Read-Host 로 입력(미입력 시 -BundlePath 사용).
@@ -31,7 +30,7 @@
   런처 .bat 만 갱신.
 
 .PARAMETER DataOnly
-  포털·npm 생략. 번들·제출서류 데이터만 갱신.
+  포털·npm 생략. 번들(포털) 내 증거·최종 + USB 루트 `갑호증및법령정보`·`제출원문` 만 갱신.
 
 .PARAMETER AuditOnly
   전수조사만.
@@ -40,14 +39,14 @@
   동기화 끝 전수조사 생략.
 
 .PARAMETER ClearUsbTargetsBeforeSync
-  포맷 없이 USB 동기화 대상만 삭제한 뒤 복사합니다. 삭제: 번들 폴더 전체, 드라이브 루트의 제출서류·구 제출서류 폴더, 스크립트가 쓰던 구 런처·안내 파일(F:\ 루트). 반드시 -ConfirmClearUsbTargets 와 함께 지정.
+  포맷 없이 USB 동기화 대상만 삭제한 뒤 복사합니다. 삭제: 번들용·갑호증및법령정보·제출원문, 구 CommissionReview_USB·행정심판청구서제출서류 등, 구 런처·안내 파일(드라이브 루트). 반드시 -ConfirmClearUsbTargets 와 함께 지정.
 
 .PARAMETER ConfirmClearUsbTargets
   -ClearUsbTargetsBeforeSync 사용 시 필수(오동작 방지).
 #>
 param(
   [string]$RepoRoot = "",
-  [string]$BundlePath = "F:\CommissionReview_USB",
+  [string]$BundlePath = "",
   [string]$LauncherDriveRoot = "F:\",
   [switch]$PromptBundlePath,
   [switch]$FormatVolumeF,
@@ -74,10 +73,17 @@ $evidenceDirName = U 0xD589, 0xC815, 0xC2EC, 0xD310, 0xCCAD, 0xAD6C, 0x28, 0xC99
 $finalDirName    = U 0xD589, 0xC815, 0xC2EC, 0xD310, 0xCCAD, 0xAD6C, 0x28, 0xCD5C, 0xC885, 0x29
 $gabSubfolder    = U 0xAC11, 0xD638, 0xC99D
 $lawDirName      = U 0xBC95, 0xB839, 0xC815, 0xBCF4
+# 증거 단일 트리: …/(증거)/갑호증 및 법령정보/{갑제N호증…, 법령정보}
+$unifiedEvidenceTreeName = (U 0xAC11, 0xD638, 0xC99D) + " " + (U 0xBC0F) + " " + (U 0xBC95, 0xB839, 0xC815, 0xBCF4)
 $evidenceInnerFinal = U 0xCD5C, 0xC885
 $submitDocsDirName = U 0xD589, 0xC815, 0xC2EC, 0xD310, 0xCCAD, 0xAD6C, 0xC11C, 0xC81C, 0xCD9C, 0xC11C, 0xB958
 # 구 제출 폴더명(번들 안·드라이브 루트) — 동기화 시 제거
 $legacySubmitDirName = U 0xD589, 0xC815, 0xC2EC, 0xD310, 0xCCAD, 0xAD6C, 0x5F, 0xC81C, 0xCD9C, 0xC11C, 0xB958
+# USB 드라이브 루트(행심위 제출용): 번들용 / 갑호증및법령정보 / 제출원문
+$usbBundleFolderName = U 0xBC88, 0xB4E4, 0xC6A9
+$usbUnifiedEvidenceUsbName = (U 0xAC11, 0xD638, 0xC99D) + (U 0xBC0F) + (U 0xBC95, 0xB839, 0xC815, 0xBCF4)
+$usbSubmitOriginalFolderName = (U 0xC81C, 0xCD9C) + (U 0xC6D0, 0xBB38)
+$legacyBundleFolderEnglish = "CommissionReview_USB"
 # USB에 넣지 않음: 법령정보 트리의 README.md, 최종 루트의 백업 규칙 MD
 $usbExcludeLawReadmeName = "README.md"
 $usbExcludeFinalMdName = "README_제출본_백업규칙.md"
@@ -87,6 +93,11 @@ $koreanLauncherOnly = (U 0xB354, 0xBE14, 0xD074, 0xB9AD, 0x20, 0xD558, 0xC2DC, 0
 
 if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
   $RepoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
+}
+
+if ([string]::IsNullOrWhiteSpace($BundlePath)) {
+  $lrInit = if ([string]::IsNullOrWhiteSpace($LauncherDriveRoot)) { "F:\" } else { $LauncherDriveRoot }
+  $BundlePath = Join-Path ($lrInit.TrimEnd('\', '/')) $usbBundleFolderName
 }
 
 if ($PromptBundlePath) {
@@ -132,14 +143,15 @@ function Remove-DirectoryForce {
 function Invoke-ClearUsbTargetsBeforeSync {
   param(
     [string]$BundleRoot,
-    [string]$DriveRoot,
-    [string]$SubmitDirName,
-    [string]$LegacySubmitDirName
+    [string]$DriveRoot
   )
   Write-Warning "USB 동기화 대상 삭제(포맷 아님) — 곧 저장소에서 다시 복사합니다."
   Remove-DirectoryForce -Path $BundleRoot
-  Remove-DirectoryForce -Path (Join-Path $DriveRoot $SubmitDirName)
-  Remove-DirectoryForce -Path (Join-Path $DriveRoot $LegacySubmitDirName)
+  Remove-DirectoryForce -Path (Join-Path $DriveRoot $usbUnifiedEvidenceUsbName)
+  Remove-DirectoryForce -Path (Join-Path $DriveRoot $usbSubmitOriginalFolderName)
+  Remove-DirectoryForce -Path (Join-Path $DriveRoot $submitDocsDirName)
+  Remove-DirectoryForce -Path (Join-Path $DriveRoot $legacySubmitDirName)
+  Remove-DirectoryForce -Path (Join-Path $DriveRoot $legacyBundleFolderEnglish)
 
   $typoLauncherBat =
     (U 0xB354, 0xBE14, 0xB9AD, 0xD074, 0x20, 0xD558, 0xC2DC, 0xBA74, 0x20, 0xC571, 0xC774, 0x20, 0xC2DC, 0xC791, 0xB429, 0xB2C8, 0xB2E4) + ".bat"
@@ -168,7 +180,7 @@ function Invoke-ClearUsbTargetsBeforeSync {
       $n -eq "COMMISSION_USB_README_KO.txt"
     } |
     Remove-Item -Force -ErrorAction SilentlyContinue
-  Write-Host "ClearUsbTargets: removed bundle, submit folders, legacy launchers on drive root."
+  Write-Host "ClearUsbTargets: 번들용·갑호증및법령정보·제출원문·구 폴더·구 런처 정리."
 }
 
 function Invoke-RobocopyMirror {
@@ -264,35 +276,76 @@ function Copy-FinalRootSubmitArtifacts {
 }
 
 <#
-  F:\행정심판청구서제출서류 — 갑호증·법령정보 하위 폴더 + 최종 루트 원문 .md·.pdf(중첩 폴더 없음).
+  행정심판청구(최종) 아래 6자리 날짜 폴더(예: 260407) 중 이름이 가장 큰 폴더의 .md·.pdf 만 제출 루트로 복사.
 #>
-function Invoke-DriveSubmitFolder {
+function Copy-LatestYymmddFinalArtifacts {
   param(
-    [string]$EvidenceSrcRoot,
-    [string]$FinalSrcRoot,
-    [string]$DriveRoot,
-    [string]$SubmitDirPart
+    [string]$SrcDir,
+    [string]$DestRoot
   )
-  $destRoot = Join-Path $DriveRoot $SubmitDirPart
-  $srcGab = Join-Path $EvidenceSrcRoot $gabSubfolder
-  $srcLaw = Get-BundleLawDirectory -EvidenceRoot $EvidenceSrcRoot -LawDirPart $lawDirName
-  if (-not (Test-Path -LiteralPath $srcGab) -and -not $srcLaw) {
-    Write-Warning "Drive submit: no gab/law under evidence"
-    return
+  if (-not (Test-Path -LiteralPath $SrcDir) -or -not (Test-Path -LiteralPath $DestRoot)) {
+    return 0
   }
-  if (Test-Path -LiteralPath $destRoot) {
-    Remove-DirectoryForce -Path $destRoot
+  $latest = Get-ChildItem -LiteralPath $SrcDir -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -match '^[0-9]{6}$' } |
+    Sort-Object { [int]$_.Name } -Descending |
+    Select-Object -First 1
+  if (-not $latest) {
+    return 0
   }
-  New-Item -ItemType Directory -Force -Path $destRoot | Out-Null
-  if ($srcLaw) {
-    $destLaw = Join-Path $destRoot $lawDirName
-    Invoke-RobocopyMirror -Src $srcLaw -Dst $destLaw -Extra @("/XF", $usbExcludeLawReadmeName)
+  $n = 0
+  Get-ChildItem -LiteralPath $latest.FullName -File -ErrorAction SilentlyContinue |
+    Where-Object {
+      @(".md", ".pdf") -contains $_.Extension.ToLowerInvariant() -and
+      $_.Name -ne $usbExcludeFinalMdName
+    } |
+    ForEach-Object {
+      Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $DestRoot $_.Name) -Force
+      $n++
+    }
+  Write-Host "제출서류 루트에 최신 제출일 폴더 $($latest.Name) .md/.pdf ($n)건"
+  return $n
+}
+
+<#
+  USB 루트: 갑호증및법령정보(증거 통합 미러) + 제출원문(.md/.pdf 만).
+#>
+function Invoke-UsbDrivePublishedFolders {
+  param(
+    [string]$DriveRoot,
+    [string]$FinalSrcRoot,
+    [string]$UnifiedEvidenceRepoRoot,
+    [string]$SplitGabSrc,
+    [string]$SplitLawSrc,
+    [string[]]$GabRobocopyExtra = @()
+  )
+  $destEvidence = Join-Path $DriveRoot $usbUnifiedEvidenceUsbName
+  $destSubmit = Join-Path $DriveRoot $usbSubmitOriginalFolderName
+
+  Remove-DirectoryForce -Path $destEvidence
+  Remove-DirectoryForce -Path $destSubmit
+  New-Item -ItemType Directory -Force -Path $destEvidence | Out-Null
+  New-Item -ItemType Directory -Force -Path $destSubmit | Out-Null
+
+  if ($UnifiedEvidenceRepoRoot) {
+    Invoke-RobocopyMirror -Src $UnifiedEvidenceRepoRoot -Dst $destEvidence
   } else {
-    Write-Warning "Drive submit: law folder missing (skipped branch)"
+    if (-not (Test-Path -LiteralPath $SplitGabSrc) -and -not $SplitLawSrc) {
+      Write-Warning "USB 갑호증및법령정보: 증거 원본 없음"
+    } else {
+      if (Test-Path -LiteralPath $SplitGabSrc) {
+        Invoke-RobocopyMirror -Src $SplitGabSrc -Dst $destEvidence -Extra $GabRobocopyExtra
+      }
+      if ($SplitLawSrc) {
+        $destLaw = Join-Path $destEvidence $lawDirName
+        Invoke-RobocopyMirror -Src $SplitLawSrc -Dst $destLaw -Extra @("/XF", $usbExcludeLawReadmeName)
+      }
+    }
   }
-  $destGab = Join-Path $destRoot $gabSubfolder
-  Invoke-RobocopyMirror -Src $srcGab -Dst $destGab
-  [void](Copy-FinalRootSubmitArtifacts -SrcDir $FinalSrcRoot -DestRoot $destRoot)
+
+  [void](Copy-FinalRootSubmitArtifacts -SrcDir $FinalSrcRoot -DestRoot $destSubmit)
+  [void](Copy-LatestYymmddFinalArtifacts -SrcDir $FinalSrcRoot -DestRoot $destSubmit)
+  Write-Host "USB 루트: $usbUnifiedEvidenceUsbName, $usbSubmitOriginalFolderName 갱신"
 }
 
 <#
@@ -301,8 +354,7 @@ function Invoke-DriveSubmitFolder {
 function Remove-UsbExcludedPayloadArtifacts {
   param(
     [string]$BundleRoot,
-    [string]$DriveRoot,
-    [string]$SubmitDirPart
+    [string]$DriveRoot
   )
   $bundleLawReadme = Join-Path (Join-Path (Join-Path $BundleRoot $evidenceDirName) $lawDirName) $usbExcludeLawReadmeName
   if (Test-Path -LiteralPath $bundleLawReadme) {
@@ -314,13 +366,13 @@ function Remove-UsbExcludedPayloadArtifacts {
     Remove-Item -LiteralPath $bundleFinalMd -Force -ErrorAction SilentlyContinue
     Write-Host "Removed excluded: $bundleFinalMd"
   }
-  $submitRoot = Join-Path $DriveRoot $SubmitDirPart
+  $usbLawReadme = Join-Path (Join-Path (Join-Path $DriveRoot $usbUnifiedEvidenceUsbName) $lawDirName) $usbExcludeLawReadmeName
+  if (Test-Path -LiteralPath $usbLawReadme) {
+    Remove-Item -LiteralPath $usbLawReadme -Force -ErrorAction SilentlyContinue
+    Write-Host "Removed excluded: $usbLawReadme"
+  }
+  $submitRoot = Join-Path $DriveRoot $usbSubmitOriginalFolderName
   if (Test-Path -LiteralPath $submitRoot) {
-    $submitLawReadme = Join-Path (Join-Path $submitRoot $lawDirName) $usbExcludeLawReadmeName
-    if (Test-Path -LiteralPath $submitLawReadme) {
-      Remove-Item -LiteralPath $submitLawReadme -Force -ErrorAction SilentlyContinue
-      Write-Host "Removed excluded: $submitLawReadme"
-    }
     $submitFinalMd = Join-Path $submitRoot $usbExcludeFinalMdName
     if (Test-Path -LiteralPath $submitFinalMd) {
       Remove-Item -LiteralPath $submitFinalMd -Force -ErrorAction SilentlyContinue
@@ -338,7 +390,6 @@ function Invoke-UsbStandaloneAudit {
   param(
     [string]$BundleRoot,
     [string]$DriveRoot,
-    [string]$SubmitDirPart,
     [string]$ExpectedLauncherName
   )
   Write-Host ""
@@ -403,20 +454,27 @@ function Invoke-UsbStandaloneAudit {
     }
   }
 
-  $allowedTop = @($gabSubfolder, $lawDirName)
-  $submitRoot = Join-Path $DriveRoot $SubmitDirPart
+  $usbEv = Join-Path $DriveRoot $usbUnifiedEvidenceUsbName
+  if (-not (Test-Path -LiteralPath $usbEv)) {
+    [void]$issues.Add("없음: $usbEv ($usbUnifiedEvidenceUsbName)")
+  } else {
+    $sub = @(Get-ChildItem -LiteralPath $usbEv -Force -ErrorAction SilentlyContinue)
+    if ($sub.Count -lt 1) {
+      [void]$issues.Add("경고: $usbUnifiedEvidenceUsbName 비어 있음")
+    }
+  }
+
+  $submitRoot = Join-Path $DriveRoot $usbSubmitOriginalFolderName
   if (-not (Test-Path -LiteralPath $submitRoot)) {
-    [void]$issues.Add("제출서류 폴더 없음: $submitRoot")
+    [void]$issues.Add("제출원문 폴더 없음: $submitRoot")
   } else {
     Get-ChildItem -LiteralPath $submitRoot -Force -ErrorAction SilentlyContinue | ForEach-Object {
       if ($_.PSIsContainer) {
-        if ($allowedTop -notcontains $_.Name) {
-          [void]$issues.Add("제출서류: 허용 외 폴더 — $($_.Name)")
-        }
+        [void]$issues.Add("제출원문: 하위 폴더 없음 권장 — $($_.Name)")
       } else {
         $ext = $_.Extension.ToLowerInvariant()
         if ($ext -ne ".md" -and $ext -ne ".pdf") {
-          [void]$issues.Add("제출서류: 루트에 허용 외 파일 — $($_.Name)")
+          [void]$issues.Add("제출원문: .md/.pdf 외 파일 — $($_.Name)")
         }
       }
     }
@@ -446,8 +504,10 @@ function Invoke-UsbStandaloneAudit {
 function Invoke-UsbBundleEvidenceAndFinal {
   param(
     [string]$BundleRoot,
-    [string]$EvidenceSrcRoot,
-    [string]$FinalSrcRoot
+    [string]$SrcGab,
+    [string]$SrcLaw,
+    [string]$FinalSrcRoot,
+    [string[]]$GabRobocopyExtra = @()
   )
   $staleSource = Join-Path $BundleRoot "source"
   if (Test-Path -LiteralPath $staleSource) {
@@ -471,45 +531,26 @@ function Invoke-UsbBundleEvidenceAndFinal {
   }
   New-Item -ItemType Directory -Force -Path $bundleEv | Out-Null
 
-  $srcGab = Join-Path $EvidenceSrcRoot $gabSubfolder
   $dstGab = Join-Path $bundleEv $gabSubfolder
-  $srcLaw = Get-BundleLawDirectory -EvidenceRoot $EvidenceSrcRoot -LawDirPart $lawDirName
   $dstLaw = Join-Path $bundleEv $lawDirName
   $dstFinal = Join-Path $BundleRoot $finalDirName
 
-  if (-not $srcLaw) {
-    Write-Warning "Law folder not found under evidence (tried $lawDirName and $evidenceInnerFinal\$lawDirName)"
+  if (-not $SrcLaw) {
+    Write-Warning "Law folder not found under evidence (tried split layout and unified\$lawDirName)"
   }
 
-  Invoke-RobocopyMirror -Src $srcGab -Dst $dstGab
-  if ($srcLaw) {
-    Invoke-RobocopyMirror -Src $srcLaw -Dst $dstLaw -Extra @("/XF", $usbExcludeLawReadmeName)
+  Invoke-RobocopyMirror -Src $SrcGab -Dst $dstGab -Extra $GabRobocopyExtra
+  if ($SrcLaw) {
+    Invoke-RobocopyMirror -Src $SrcLaw -Dst $dstLaw -Extra @("/XF", $usbExcludeLawReadmeName)
   }
   [void](Copy-DirectoryRootMdPdfOnly -SrcDir $FinalSrcRoot -DstDir $dstFinal)
-  # 포털 tabSources(`…(최종)/260405/260405_01_…`)와 개요(260405 폴더) — 루트 .md만으로는 부족할 수 있음
+  # 포털 tabSources(`…(최종)/260405(인천행심위)/260405_01_…`)와 사건별 폴더 — 루트 .md만으로는 부족할 수 있음
   Get-ChildItem -LiteralPath $FinalSrcRoot -Directory -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -match '^[0-9]{6}$' } |
     ForEach-Object {
       $dstSub = Join-Path $dstFinal $_.Name
       Invoke-RobocopyMirror -Src $_.FullName -Dst $dstSub
     }
-}
-
-function Set-UsbBundleHidden {
-  param([string]$BundleRoot)
-  if (-not (Test-Path -LiteralPath $BundleRoot)) { return }
-  try {
-    $p = [System.IO.Path]::GetFullPath($BundleRoot).TrimEnd([char[]]@('\', '/'))
-    if (-not (Test-Path -LiteralPath $p -PathType Container)) { return }
-    $cur = [System.IO.File]::GetAttributes($p)
-    $want = $cur -bor [System.IO.FileAttributes]::Hidden
-    if ($cur -ne $want) {
-      [System.IO.File]::SetAttributes($p, $want)
-    }
-    Write-Host "번들 폴더 숨김(Hidden): $p"
-  } catch {
-    Write-Warning "Could not set Hidden on bundle: $_"
-  }
 }
 
 $bundle = $BundlePath.TrimEnd('\', '/')
@@ -537,8 +578,7 @@ if ($ClearUsbTargetsBeforeSync) {
   if (-not $ConfirmClearUsbTargets) {
     throw "-ClearUsbTargetsBeforeSync 는 데이터 삭제입니다. 함께 -ConfirmClearUsbTargets 를 지정하세요."
   }
-  Invoke-ClearUsbTargetsBeforeSync -BundleRoot $bundle -DriveRoot $lr `
-    -SubmitDirName $submitDocsDirName -LegacySubmitDirName $legacySubmitDirName
+  Invoke-ClearUsbTargetsBeforeSync -BundleRoot $bundle -DriveRoot $lr
 }
 
 if ($FormatVolumeF) {
@@ -567,8 +607,7 @@ if ($AuditOnly) {
   if (-not (Test-Path -LiteralPath $bundle)) {
     throw "Bundle not found: $bundle"
   }
-  Set-UsbBundleHidden -BundleRoot $bundle
-  Invoke-UsbStandaloneAudit -BundleRoot $bundle -DriveRoot $lr -SubmitDirPart $submitDocsDirName `
+  Invoke-UsbStandaloneAudit -BundleRoot $bundle -DriveRoot $lr `
     -ExpectedLauncherName $koreanLauncherOnly
   exit 0
 }
@@ -582,9 +621,28 @@ foreach ($d in [System.IO.Directory]::GetDirectories($RepoRoot)) {
     $evidenceSrc = $d
     break
   }
+  if ([System.IO.Directory]::Exists([System.IO.Path]::Combine($d, $unifiedEvidenceTreeName))) {
+    $evidenceSrc = $d
+    break
+  }
 }
 if (-not $evidenceSrc) {
-  throw "Evidence folder not found under repo (no $gabSubfolder child): $RepoRoot"
+  throw "Evidence folder not found under repo (no $gabSubfolder nor $unifiedEvidenceTreeName child): $RepoRoot"
+}
+
+$splitGab = Join-Path $evidenceSrc $gabSubfolder
+$unifiedRoot = Join-Path $evidenceSrc $unifiedEvidenceTreeName
+$gabRobocopyExtra = @()
+if (Test-Path -LiteralPath $splitGab) {
+  $srcGabPath = $splitGab
+  $srcLawPath = Get-BundleLawDirectory -EvidenceRoot $evidenceSrc -LawDirPart $lawDirName
+} elseif (Test-Path -LiteralPath $unifiedRoot) {
+  $srcGabPath = $unifiedRoot
+  $gabRobocopyExtra = @("/XD", $lawDirName)
+  $nestedLaw = Join-Path $unifiedRoot $lawDirName
+  $srcLawPath = if (Test-Path -LiteralPath $nestedLaw) { $nestedLaw } else { $null }
+} else {
+  throw "갑호증 또는 갑호증 및 법령정보 없음: $evidenceSrc"
 }
 
 $finalSrc = Join-Path $RepoRoot $finalDirName
@@ -599,9 +657,9 @@ if ($DataOnly) {
     }
     New-Item -ItemType Directory -Force -Path $bundle | Out-Null
     Write-Host "Created bundle folder after clear: $bundle"
-    Set-UsbBundleHidden -BundleRoot $bundle
   }
-  Invoke-UsbBundleEvidenceAndFinal -BundleRoot $bundle -EvidenceSrcRoot $evidenceSrc -FinalSrcRoot $finalSrc
+  Invoke-UsbBundleEvidenceAndFinal -BundleRoot $bundle -SrcGab $srcGabPath -SrcLaw $srcLawPath `
+    -FinalSrcRoot $finalSrc -GabRobocopyExtra $gabRobocopyExtra
 } else {
   $portalSrc = Join-Path $RepoRoot "web\commission-portal"
   if (-not (Test-Path -LiteralPath $portalSrc)) {
@@ -609,7 +667,6 @@ if ($DataOnly) {
   }
 
   New-Item -ItemType Directory -Force -Path $bundle | Out-Null
-  Set-UsbBundleHidden -BundleRoot $bundle
 
   # (1) web 포털 단독 실행 모듈
   $portalDst = Join-Path $bundle "portal"
@@ -654,13 +711,19 @@ if ($DataOnly) {
   }
 
   # (2)(3) 증거 전체 + 최종 루트 md/pdf
-  Invoke-UsbBundleEvidenceAndFinal -BundleRoot $bundle -EvidenceSrcRoot $evidenceSrc -FinalSrcRoot $finalSrc
+  Invoke-UsbBundleEvidenceAndFinal -BundleRoot $bundle -SrcGab $srcGabPath -SrcLaw $srcLawPath `
+    -FinalSrcRoot $finalSrc -GabRobocopyExtra $gabRobocopyExtra
 }
 
-  Invoke-DriveSubmitFolder -EvidenceSrcRoot $evidenceSrc -FinalSrcRoot $finalSrc `
-    -DriveRoot $lr -SubmitDirPart $submitDocsDirName
+  if (Test-Path -LiteralPath $unifiedRoot) {
+    Invoke-UsbDrivePublishedFolders -DriveRoot $lr -FinalSrcRoot $finalSrc `
+      -UnifiedEvidenceRepoRoot $unifiedRoot -SplitGabSrc "" -SplitLawSrc $null -GabRobocopyExtra @()
+  } else {
+    Invoke-UsbDrivePublishedFolders -DriveRoot $lr -FinalSrcRoot $finalSrc `
+      -UnifiedEvidenceRepoRoot $null -SplitGabSrc $srcGabPath -SplitLawSrc $srcLawPath -GabRobocopyExtra $gabRobocopyExtra
+  }
 
-  Remove-UsbExcludedPayloadArtifacts -BundleRoot $bundle -DriveRoot $lr -SubmitDirPart $submitDocsDirName
+  Remove-UsbExcludedPayloadArtifacts -BundleRoot $bundle -DriveRoot $lr
 
 } # end else (not LauncherOnly: resolve paths + DataOnly or full sync)
 
@@ -740,17 +803,15 @@ exit /b 0
 "@
 [System.IO.File]::WriteAllText((Join-Path $lr $koreanLauncherOnly), $singleBat, [System.Text.UTF8Encoding]::new($false))
 
-Set-UsbBundleHidden -BundleRoot $bundle
-
 if (-not $SkipAudit) {
-  Invoke-UsbStandaloneAudit -BundleRoot $bundle -DriveRoot $lr -SubmitDirPart $submitDocsDirName `
+  Invoke-UsbStandaloneAudit -BundleRoot $bundle -DriveRoot $lr `
     -ExpectedLauncherName $koreanLauncherOnly
 }
 
 Write-Host ""
-Write-Host "Done. Bundle: $bundle"
-Write-Host "번들(1~3): portal + $evidenceDirName\{갑호증,법령정보} 전체 + $finalDirName\ 루트 .md/.pdf"
-Write-Host "제출서류(4): $(Join-Path $lr $submitDocsDirName) — 갑호증·법령정보 하위 폴더 + 최종 루트 원문 .md/.pdf(중첩 없음)"
+Write-Host "Done. 번들(포털) 루트: $bundle"
+Write-Host "  portal + $evidenceDirName\갑호증·법령정보 + $finalDirName\ (포털용)"
+Write-Host "USB 루트: $(Join-Path $lr $usbUnifiedEvidenceUsbName) | $(Join-Path $lr $usbSubmitOriginalFolderName) | 런처 .bat"
 if ($FormatVolumeF) {
   Write-Host "드라이브 $($script:UsbFormatDriveLetter): 포맷 후 복사 완료."
 }

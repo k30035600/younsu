@@ -1,10 +1,8 @@
 /**
  * 농원근린공원 행정심판청구 — 탭별 서면 표시·미주
  *
- * ⚠ 조판본(꼬리말) 원칙 — `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/`
- * - `/serve/` 는 `start.js` 가 원본 rel 이라도 디스크에서 위 조판 PDF·mp4 가 있으면 **항상 그것을 먼저** 연다.
- * - 갑호증 JPG 썸네일은 `gabPdf2AlternateRel` 로 조판 `.pdf` URL 에 PDF.js 를 건다.
- * - 판례 링크는 `precedentFiles` → `buildCiteMaps` 의 `caseById` 로 매칭; **npm start / 저장소 루트** 없이 정적 파일만 열면 /serve/·매칭이 깨질 수 있다.
+ * 열람: 저장소 루트 `갑호증및법령정보/`·`USB/갑호증및법령정보/` 실제 파일을 `/serve/`로 연다(USB·로컬 미러는 start.js 가 교차 시도).
+ * 판례 링크는 `precedentFiles` → `buildCiteMaps` 의 `caseById` 로 매칭; **npm start / 저장소 루트** 없이 정적만 열면 /serve/가 깨질 수 있다.
  */
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -16,29 +14,29 @@ const DOC_PREVIEW_HEADING_IDLE_HTML =
 /** 오른쪽 패널 안내 문구 HTML — `clearDocPreviewPanel` 시 `#doc-preview-lead` 에 복원(index.html 과 동일 유지) */
 const DOC_PREVIEW_LEAD_IDLE_HTML = `[ 사용방법 ]
 
-1. 행정심판청구서, 집행정지신청서 및 별지(갑1~3호증) 본문에서 호증 표기(링크)를 더블클릭하면 오른쪽에 갑호증 또는 법령정보 요지가 열립니다.
+1. 행정심판청구서, 집행정지신청서 및 별지 제1호~제4호 본문에서 호증 표기(링크)를 더블클릭하면 오른쪽에 갑호증 또는 법령정보 요지가 열립니다.
 
-2. 화면에 출력된 PDF·이미지·동영상 등을 다시 더블클릭하면 전체 화면(모달)으로 볼 수 있고, 더블클릭 또는 Esc로 닫을 수 있습니다. 다중 PDF는 이 패널에서 <strong>1쪽 썸네일</strong>만 보이며, 전체는 모달에서 봅니다. 동영상은 이 패널에서 자동 재생하지 않고, 큰 화면(모달)에서 재생됩니다.
+2. 화면에 출력된 PDF·이미지·동영상 등을 다시 더블클릭하면 <strong>전체 화면</strong>으로 볼 수 있고, 더블클릭 또는 Esc로 닫을 수 있습니다.
 
-<strong>⚠ 조판본 원칙:</strong> 갑호증·법령정보는 저장소 <code>행정심판청구(증거)/pdf_2_pdf/갑호증</code>·<code>…/pdf_2_pdf/법령정보</code> 에 조판 PDF가 있으면, 제출본 경로로 요청해도 <strong>반드시 그 조판본</strong>(꼬리말 포함)을 먼저 제공합니다. 로컬에서는 <code>npm start</code> 로 이 저장소 루트를 켜야 <code>/serve/</code> 가 동작합니다. 판례 사건번호 링크는 조판 PDF 파일명과 본문 표기(예: 2008두167)가 일치해야 합니다.`;
+3. 다중 PDF는 이 패널에서 <strong>1쪽 썸네일</strong>만 보이며, 전체는 <strong>전체 화면</strong>에서 봅니다. 동영상은 이 패널에서 자동 재생하지 않고, <strong>전체 화면</strong>에서 재생됩니다.`;
 
 const DOC_PREVIEW_LEAD_CITE =
-  "청구서·신청서 본문에서 연 인용입니다. 내용을 다시 더블클릭하면 전체 화면(모달)으로 열 수 있습니다.";
+  "청구서·신청서 본문에서 연 인용입니다. 내용을 다시 더블클릭하면 전체 화면으로 열 수 있습니다.";
 
 const DOC_PREVIEW_LEAD_APPENDIX_CITE =
-  "별지(갑3호증) 본문에서 연 인용입니다. 내용을 다시 더블클릭하면 전체 화면(모달)으로 열 수 있습니다.";
+  "별지 본문에서 연 인용입니다. 내용을 다시 더블클릭하면 전체 화면으로 열 수 있습니다.";
 
 const DOC_PREVIEW_LEAD_APPENDIX_FILE =
-  "별지 본문의 저장소 파일 링크입니다. 내용을 다시 더블클릭하면 전체 화면(모달)으로 열 수 있습니다.";
+  "별지 본문의 저장소 파일 링크입니다. 내용을 다시 더블클릭하면 전체 화면으로 열 수 있습니다.";
 
 const DOC_PREVIEW_LEAD_EVIDENCE =
-  "연 호증의 요지와 파일입니다. 분할 묶음은 격자로 보입니다. 내용을 다시 더블클릭하면 전체 화면(모달)으로 열 수 있습니다.";
+  "연 호증의 요지와 파일입니다. 분할 묶음은 격자로 보입니다. 내용을 다시 더블클릭하면 전체 화면으로 열 수 있습니다.";
 
 /** 청구서·개요 등 본문의 호증 링크에서 연 파일 */
 const DOC_PREVIEW_LEAD_GAB_LINK =
-  "본문·증거 목록의 호증 링크에서 연 파일입니다. 다시 더블클릭하면 전체 화면(모달)으로 열 수 있습니다.";
+  "본문·증거 목록의 호증 링크에서 연 파일입니다. 다시 더블클릭하면 전체 화면으로 열 수 있습니다.";
 
-const MARKED_CDN = "https://cdn.jsdelivr.net/npm/marked@14.1.0/+esm";
+const MARKED_CDN = "https://cdn.jsdelivr.net/npm/marked@14.1.4/+esm";
 
 let metaGlobal = null;
 
@@ -58,19 +56,26 @@ let citeMaps = null;
 
 /** 인용 링크: 청구·신청 본문은 더블클릭 시 오른쪽 패널 → 패널에서 다시 더블클릭 시 전체 화면(모달). */
 const CITE_OPEN_TITLE =
-  "더블클릭하면 오른쪽 패널에 자료를 표시합니다. 패널에서 다시 더블클릭하면 전체 화면(모달)입니다. (키보드: Enter 또는 Space)";
+  "더블클릭하면 오른쪽 패널에 자료를 표시합니다. 패널에서 다시 더블클릭하면 전체 화면입니다. (키보드: Enter 또는 Space)";
 
 /** 전체 창(모달) 뷰어 — 본문·어두운 바깥 더블클릭 또는 Esc로 닫기(닫기 단추도 동일). */
 const VIEWER_CLOSE_HINT = "닫기: 더블클릭 또는 Esc 키.";
 
+/** `styles.css` `.detail-gab3-item` 의 `--detail-gab3-thumb-h` 상한과 동기(레이아웃 전 PDF 축척 폴백) */
+const BUNDLE_THUMB_BOX_HEIGHT_PX = 420;
+
 /** 모달이 열리기 직전 `window` 스크롤 — 닫을 때 복원해 본문 위치가 튀지 않게 함 */
 let viewerBackgroundScroll = null;
+
+/** 가로 사진 전체화면에서 `screen.orientation.lock('landscape')` 성공 시 닫을 때 unlock */
+let viewerOrientationUnlock = null;
 
 const tabLoaded = {
   appeal: false,
   gab1: false,
   gab2: false,
   gab3: false,
+  gab4: false,
   injunction: false,
 };
 
@@ -97,6 +102,7 @@ function tabSourceRelForSection(id) {
   if (id === "gab1") return String(src.gab1 || "").trim();
   if (id === "gab2") return String(src.gab2 || "").trim();
   if (id === "gab3") return String(src.gab3 || "").trim();
+  if (id === "gab4") return String(src.gab4 || "").trim();
   if (id === "injunction") return String(src.injunction || "").trim();
   return "";
 }
@@ -120,7 +126,40 @@ function relFromServeUrl(src) {
 let allRows = [];
 let markedParse = null;
 
-const VALID_SECTIONS = ["appeal", "injunction", "gab1", "gab2", "gab3"];
+/** `gab-pdf-display-overrides.json` — 갑호증 PDF 전수 목록·가로 표시 강제 규칙 */
+let gabPdfDisplayOverrides = { forceLandscape: [], catalogRelSuffixes: [] };
+
+function gabEvidenceTailForDisplayMatch(rel) {
+  const n = normRelPosix(String(rel || "")).normalize("NFC");
+  const usb = "USB/갑호증및법령정보/";
+  const prim = "갑호증및법령정보/";
+  if (n.startsWith(usb)) return n.slice(usb.length);
+  if (n.startsWith(prim)) return n.slice(prim.length);
+  return n;
+}
+
+/** 세로 미디어 박스 PDF를 썸네일·전체화면에서 가로 콘텐츠처럼 표시할지(목록 수동 지정). */
+function pdfRelForceLandscapeDisplay(rel) {
+  const leaf =
+    String(rel || "")
+      .replace(/\\/g, "/")
+      .split("/")
+      .filter(Boolean)
+      .pop() || "";
+  const leafN = leaf.normalize("NFC");
+  const tail = gabEvidenceTailForDisplayMatch(rel).normalize("NFC");
+  for (const rule of gabPdfDisplayOverrides.forceLandscape || []) {
+    const rs = rule.relSuffix && String(rule.relSuffix).normalize("NFC");
+    const lf = rule.leaf && String(rule.leaf).normalize("NFC");
+    if (lf && leafN === lf) return true;
+    if (rs && (tail === rs || tail.endsWith("/" + rs) || tail.endsWith(rs))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const VALID_SECTIONS = ["appeal", "injunction", "gab1", "gab2", "gab3", "gab4"];
 
 /** 예전 주소 해시(#overview 등) → 현재 탭 id */
 const LEGACY_HASH_TAB = {
@@ -175,7 +214,8 @@ async function applyHashFromLocation() {
     tab === "injunction" ||
     tab === "gab1" ||
     tab === "gab2" ||
-    tab === "gab3"
+    tab === "gab3" ||
+    tab === "gab4"
   ) {
     requestAnimationFrame(() => scrollFirstScreenToTop());
   }
@@ -335,13 +375,240 @@ function splitMainAndNotes(md) {
   return { main, notes };
 }
 
+/** `(위통합)`·`(위셀병합)` 등 — 1열 세로병합 표식(셀 내용만, 공백 무시) */
+function isGab3MergeAboveMarkerText(text) {
+  const s = String(text || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s/g, "");
+  if (!s) return false;
+  return (
+    /^[\(（]위통합[)）]$/.test(s) ||
+    /^위통합[)）]$/.test(s) ||
+    /^[\(（]위셀병합[)）]$/.test(s) ||
+    /^위셀병합[)）]$/.test(s)
+  );
+}
+
+/** `thead` 첫 행(없으면 tbody 첫 행) 기준 논리 열 수 — colspan 반영 */
+function gab3TableColumnCount(table) {
+  const headTr = table.querySelector(":scope > thead tr");
+  const row = headTr || table.tBodies[0]?.rows[0];
+  if (!row) return 0;
+  let n = 0;
+  for (let i = 0; i < row.cells.length; i++) {
+    n += Number(row.cells[i].colSpan) || 1;
+  }
+  return n;
+}
+
+function gab3TrOccupiedColumnCount(tr) {
+  if (!tr?.cells?.length) return 0;
+  let n = 0;
+  for (let i = 0; i < tr.cells.length; i++) {
+    n += Number(tr.cells[i].colSpan) || 1;
+  }
+  return n;
+}
+
+/**
+ * 별지 제3호: tbody에서 **이 행이 표의 전체 열 수만큼 칸을 가진 경우에만**(=실제 1열에 `<td>`가 있음)
+ * 1열이 병합 표식이면 제거하고 윗행 1열 `rowspan` 증가.
+ * `rowspan` 연속 행은 칸 수가 부족하므로 건드리지 않음(`cellIndex`는 행 내 순번이라 구분에 쓰이지 않음).
+ */
+function mergeGab3MergeAboveMarkerRows(root) {
+  if (!root?.querySelector) return;
+  for (const table of root.querySelectorAll(".doc-gab3-time table")) {
+    const colCount = gab3TableColumnCount(table);
+    if (colCount < 2) continue;
+    for (const tbody of table.tBodies) {
+      for (const tr of tbody.querySelectorAll(":scope > tr")) {
+        if (!tr.cells || tr.cells.length === 0) continue;
+        if (gab3TrOccupiedColumnCount(tr) < colCount) continue;
+        const first = tr.cells[0];
+        if (!isGab3MergeAboveMarkerText(first.textContent)) continue;
+        let prev = tr.previousElementSibling;
+        let anchor = null;
+        while (prev) {
+          if (prev.cells && prev.cells.length > 0 && gab3TrOccupiedColumnCount(prev) >= colCount) {
+            anchor = prev.cells[0];
+            break;
+          }
+          prev = prev.previousElementSibling;
+        }
+        if (!anchor) continue;
+        const nextRs = Number(anchor.getAttribute("rowspan") || 1) + 1;
+        anchor.setAttribute("rowspan", String(nextRs));
+        first.remove();
+      }
+    }
+  }
+}
+
+/** URL 없을 때: `, /`·`/`·`／`·`^` — 문자 클래스 안의 `^` 이슈를 피하려 분기 명시 */
+const GAB3_LINE_DELIM_NO_URL = /(?:,\s*\/|,\s*／|,\s*\^|\/|／|\^)/;
+
+function gab3TextNodeHasUrlScheme(t) {
+  return /[a-z][a-z0-9+.-]*:\/\//i.test(t);
+}
+
+/** 조각 2개 이상이면 `<br />` 삽입( trim 후 빈 조각 허용 — URL이 `<a>`로 분리된 뒤 `열람 ^ ` 노드 등) */
+function gab3BuildBrFragmentFromRawParts(rawParts) {
+  if (rawParts.length < 2) return null;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < rawParts.length; i++) {
+    if (i > 0) frag.appendChild(document.createElement("br"));
+    const seg = rawParts[i].trim();
+    if (seg) frag.appendChild(document.createTextNode(seg));
+  }
+  return frag;
+}
+
+/**
+ * 별지 제3호: 줄바꿈 표식을 `<br />`로 치환하고 기호는 제거.
+ * - 대상: `.doc-gab3-time` 안 **모든 표** `td`·`th`, 및 **부속** `.doc-gab3-appendix` 안 `p`·`li`(표 밖 문단·목록).
+ * - 일반: `, /`·`/`·전각 `／`·`^`
+ * - **`http://`·`https://`가 노드에 있으면** **`^`만** 줄바꿈 구분자.
+ * **`decorateMdContentRoot` 다음**에 호출. `a`·`code`·`pre` 안 텍스트는 건드리지 않음.
+ */
+function gab3CollectSlashLineBreakTargets(root) {
+  const seen = new Set();
+  const out = [];
+  const addAll = (nodeList) => {
+    for (const el of nodeList) {
+      if (seen.has(el)) continue;
+      seen.add(el);
+      out.push(el);
+    }
+  };
+  addAll(root.querySelectorAll(".doc-gab3-time table td, .doc-gab3-time table th"));
+  addAll(root.querySelectorAll("table.doc-gab-appendix-compare td, table.doc-gab-appendix-compare th"));
+  addAll(root.querySelectorAll(".doc-gab3-appendix :is(p, li)"));
+  return out;
+}
+
+function applyGab3SlashLineBreaks(root) {
+  if (!root?.querySelector) return;
+  const maxPass = 12;
+  for (let pass = 0; pass < maxPass; pass++) {
+    const blocks = gab3CollectSlashLineBreakTargets(root);
+    let changed = false;
+    for (const cell of blocks) {
+      const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, null);
+      const textNodes = [];
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) textNodes.push(n);
+      for (const textNode of textNodes) {
+        if (processGab3SlashTextNode(textNode)) changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+}
+
+/**
+ * @returns {boolean} 치환했으면 true
+ */
+function gab3NormalizeCaretMarkers(text) {
+  return String(text || "")
+    .replace(/\uFF3E/g, "^")
+    .replace(/\u02C6/g, "^");
+}
+
+function processGab3SlashTextNode(textNode) {
+  const tRaw = textNode.nodeValue;
+  if (!tRaw) return false;
+  const t = gab3NormalizeCaretMarkers(tRaw);
+  const el = textNode.parentElement;
+  if (!el || el.closest("a, code, pre, script, style")) return false;
+
+  const hasUrl = gab3TextNodeHasUrlScheme(t);
+  if (hasUrl) {
+    if (!t.includes("^") && !/,\s*\^/.test(t)) return false;
+    if (/^\s*,\s*\^\s*$/.test(t)) {
+      textNode.parentNode.replaceChild(document.createElement("br"), textNode);
+      return true;
+    }
+    if (/^\s*\^\s*$/.test(t)) {
+      textNode.parentNode.replaceChild(document.createElement("br"), textNode);
+      return true;
+    }
+    const endsCommaCaret = t.match(/^([\s\S]+?),\s*\^\s*$/);
+    if (endsCommaCaret && endsCommaCaret[1].trim()) {
+      const frag = document.createDocumentFragment();
+      frag.appendChild(document.createTextNode(endsCommaCaret[1].trim()));
+      frag.appendChild(document.createElement("br"));
+      textNode.parentNode.replaceChild(frag, textNode);
+      return true;
+    }
+    const leadCaret = t.match(/^\s*\^([\s\S]+)$/);
+    if (leadCaret && leadCaret[1].trim()) {
+      const frag = document.createDocumentFragment();
+      frag.appendChild(document.createElement("br"));
+      frag.appendChild(document.createTextNode(leadCaret[1].trim()));
+      textNode.parentNode.replaceChild(frag, textNode);
+      return true;
+    }
+    const rawCaret = t.split(/(?:,\s*\^|\^)/);
+    const fragCaret = gab3BuildBrFragmentFromRawParts(rawCaret);
+    if (fragCaret) {
+      textNode.parentNode.replaceChild(fragCaret, textNode);
+      return true;
+    }
+    return false;
+  }
+
+  if (
+    !t.includes("/") &&
+    !t.includes("／") &&
+    !t.includes("^") &&
+    !/,\s*[\/／^]/.test(t)
+  ) {
+    return false;
+  }
+
+  if (/^\s*,\s*[\/／^]\s*$/.test(t)) {
+    textNode.parentNode.replaceChild(document.createElement("br"), textNode);
+    return true;
+  }
+  if (/^\s*[\/／^]\s*$/.test(t)) {
+    textNode.parentNode.replaceChild(document.createElement("br"), textNode);
+    return true;
+  }
+
+  const endsCommaSlash = t.match(/^([\s\S]+?),\s*[\/／^]\s*$/);
+  if (endsCommaSlash && endsCommaSlash[1].trim()) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(document.createTextNode(endsCommaSlash[1].trim()));
+    frag.appendChild(document.createElement("br"));
+    textNode.parentNode.replaceChild(frag, textNode);
+    return true;
+  }
+
+  const leadSlash = t.match(/^\s*[\/／^]([\s\S]+)$/);
+  if (leadSlash && leadSlash[1].trim()) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(document.createElement("br"));
+    frag.appendChild(document.createTextNode(leadSlash[1].trim()));
+    textNode.parentNode.replaceChild(frag, textNode);
+    return true;
+  }
+
+  const rawDelim = t.split(GAB3_LINE_DELIM_NO_URL);
+  const fragDelim = gab3BuildBrFragmentFromRawParts(rawDelim);
+  if (fragDelim) {
+    textNode.parentNode.replaceChild(fragDelim, textNode);
+    return true;
+  }
+  return false;
+}
+
 function mdChunkToTabHtml(prefix, parse, mdChunk) {
   const preserveBoldItalic =
     prefix === "appeal" ||
     prefix === "injunction" ||
     prefix === "gab1" ||
     prefix === "gab2" ||
-    prefix === "gab3";
+    prefix === "gab3" ||
+    prefix === "gab4";
   if (!preserveBoldItalic) return parse(mdChunk);
   const normalized = normalizeMarkdownBoldSpans(mdChunk);
   return htmlLiteralBoldToStrong(parse(normalized));
@@ -354,7 +621,8 @@ function decorateMdContentRoot(wrap, prefix) {
     prefix === "injunction" ||
     prefix === "gab1" ||
     prefix === "gab2" ||
-    prefix === "gab3";
+    prefix === "gab3" ||
+    prefix === "gab4";
   const unwrapOpts = { preserveBoldItalic };
   upgradeMarkdownAnchorsToCiteRefs(wrap, { nested: false });
   decorateCiteLinks(wrap, { nested: false });
@@ -382,13 +650,21 @@ async function renderMdSplit(prefix, mdText) {
     notesWrap.className = "md-content";
     notesWrap.innerHTML = injectIncheonIngaGosiLinks(mdChunkToTabHtml(prefix, parse, notes));
     notesEl.appendChild(notesWrap);
+    if (prefix === "gab3") mergeGab3MergeAboveMarkerRows(notesWrap);
+    if (prefix === "gab3") applyGab3SlashLineBreaks(notesWrap);
     decorateMdContentRoot(notesWrap, prefix);
+    if (prefix === "gab3") applyGab3SlashLineBreaks(notesWrap);
   } else {
     wrapEl.hidden = true;
     notesEl.replaceChildren();
   }
   const mainWrap = mainEl.querySelector(".md-content");
-  if (mainWrap) decorateMdContentRoot(mainWrap, prefix);
+  if (mainWrap) {
+    if (prefix === "gab3") mergeGab3MergeAboveMarkerRows(mainWrap);
+    if (prefix === "gab3") applyGab3SlashLineBreaks(mainWrap);
+    decorateMdContentRoot(mainWrap, prefix);
+    if (prefix === "gab3") applyGab3SlashLineBreaks(mainWrap);
+  }
 }
 
 /** MD 편집 모달 왼쪽: 본문 탭과 동일 파이프라인 렌더(입력과 동시 갱신) */
@@ -405,7 +681,10 @@ async function renderMdEditorPreview(prefix, mdText) {
     mainWrap.className = "md-content";
     mainWrap.innerHTML = injectIncheonIngaGosiLinks(mdChunkToTabHtml(prefix, parse, main));
     mount.appendChild(mainWrap);
+    if (prefix === "gab3") mergeGab3MergeAboveMarkerRows(mainWrap);
+    if (prefix === "gab3") applyGab3SlashLineBreaks(mainWrap);
     decorateMdContentRoot(mainWrap, prefix);
+    if (prefix === "gab3") applyGab3SlashLineBreaks(mainWrap);
     if (notes.trim()) {
       const hr = document.createElement("hr");
       hr.className = "md-editor-preview-sep";
@@ -414,7 +693,10 @@ async function renderMdEditorPreview(prefix, mdText) {
       notesWrap.className = "md-content md-editor-preview-notes";
       notesWrap.innerHTML = injectIncheonIngaGosiLinks(mdChunkToTabHtml(prefix, parse, notes));
       mount.appendChild(notesWrap);
+      if (prefix === "gab3") mergeGab3MergeAboveMarkerRows(notesWrap);
+      if (prefix === "gab3") applyGab3SlashLineBreaks(notesWrap);
       decorateMdContentRoot(notesWrap, prefix);
+      if (prefix === "gab3") applyGab3SlashLineBreaks(notesWrap);
     }
   } catch {
     mount.replaceChildren();
@@ -449,6 +731,7 @@ const TAB_SOURCE_PUBLIC_FALLBACK = {
   gab1: "별지_갑1호증.md",
   gab2: "별지_갑2호증.md",
   gab3: "별지_갑3호증.md",
+  gab4: "별지_갑4호증.md",
   injunction: "집행정지신청.md",
 };
 
@@ -540,9 +823,10 @@ function applyTabSourcePathHints() {
 
   setTab("appeal", src.appeal, "행정심판청구서 탭", null);
   setTab("injunction", src.injunction, "집행정지신청서 탭", null);
-  setTab("gab1", src.gab1, "별지(갑1호증) 탭", null);
-  setTab("gab2", src.gab2, "별지(갑2호증) 탭", null);
-  setTab("gab3", src.gab3, "별지(갑3호증) 탭", null);
+  setTab("gab1", src.gab1, "별지 제1호 탭", null);
+  setTab("gab2", src.gab2, "별지 제2호 탭", null);
+  setTab("gab3", src.gab3, "별지 제3호 탭", null);
+  setTab("gab4", src.gab4, "별지 제4호 탭", null);
 
   const setBtn = (id, rel, heading, extra) => {
     if (!rel) return;
@@ -552,9 +836,10 @@ function applyTabSourcePathHints() {
 
   setBtn("btn-md-appeal", src.appeal, "MD 편집 · 행정심판청구서", null);
   setBtn("btn-md-injunction", src.injunction, "MD 편집 · 집행정지신청서", null);
-  setBtn("btn-md-gab1", src.gab1, "MD 편집 · 별지(갑1호증)", null);
-  setBtn("btn-md-gab2", src.gab2, "MD 편집 · 별지(갑2호증)", null);
-  setBtn("btn-md-gab3", src.gab3, "MD 편집 · 별지(갑3호증)", null);
+  setBtn("btn-md-gab1", src.gab1, "MD 편집 · 별지 제1호", null);
+  setBtn("btn-md-gab2", src.gab2, "MD 편집 · 별지 제2호", null);
+  setBtn("btn-md-gab3", src.gab3, "MD 편집 · 별지 제3호", null);
+  setBtn("btn-md-gab4", src.gab4, "MD 편집 · 별지 제4호", null);
 }
 
 async function openMdEditor(prefix) {
@@ -566,13 +851,16 @@ async function openMdEditor(prefix) {
     title = "행정심판청구서 (MD)";
   } else if (prefix === "gab1") {
     rel = src.gab1;
-    title = "별지(갑1호증) (MD)";
+    title = "별지 제1호 (MD)";
   } else if (prefix === "gab2") {
     rel = src.gab2;
-    title = "별지(갑2호증) (MD)";
+    title = "별지 제2호 (MD)";
   } else if (prefix === "gab3") {
     rel = src.gab3;
-    title = "별지(갑3호증) (MD)";
+    title = "별지 제3호 (MD)";
+  } else if (prefix === "gab4") {
+    rel = src.gab4;
+    title = "별지 제4호 (MD)";
   } else if (prefix === "injunction") {
     rel = src.injunction;
     title = "집행정지신청서 (MD)";
@@ -596,7 +884,10 @@ async function openMdEditor(prefix) {
   statusEl.className = "md-editor-status";
   ta.value = "불러오는 중…";
   const previewMount = $("#md-editor-preview-mount");
-  if (previewMount) previewMount.replaceChildren();
+  if (previewMount) {
+    previewMount.replaceChildren();
+    previewMount.dataset.mdTab = prefix;
+  }
   modal.hidden = false;
   document.body.style.overflow = "hidden";
 
@@ -624,7 +915,10 @@ function closeMdEditorModal() {
     mdEditorPreviewRaf = 0;
   }
   const previewMount = $("#md-editor-preview-mount");
-  if (previewMount) previewMount.replaceChildren();
+  if (previewMount) {
+    previewMount.replaceChildren();
+    delete previewMount.dataset.mdTab;
+  }
   const modal = $("#md-editor-modal");
   if (modal) modal.hidden = true;
   document.body.style.overflow = "";
@@ -707,11 +1001,22 @@ function bindMdEditorTools() {
   $("#btn-md-gab1")?.addEventListener("click", () => openMdEditor("gab1"));
   $("#btn-md-gab2")?.addEventListener("click", () => openMdEditor("gab2"));
   $("#btn-md-gab3")?.addEventListener("click", () => openMdEditor("gab3"));
+  $("#btn-md-gab4")?.addEventListener("click", () => openMdEditor("gab4"));
   $("#md-editor-close")?.addEventListener("click", closeMdEditorModal);
   $("#md-editor-modal")
     ?.querySelector("[data-md-editor-close]")
     ?.addEventListener("click", closeMdEditorModal);
   $("#md-editor-download-txt")?.addEventListener("click", downloadMdAsTxt);
+  $("#md-editor-print-preview")?.addEventListener("click", () => {
+    const body = document.body;
+    body.classList.add("md-editor-print-session");
+    const onAfterPrint = () => {
+      body.classList.remove("md-editor-print-session");
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+    window.addEventListener("afterprint", onAfterPrint);
+    window.print();
+  });
   $("#md-editor-save")?.addEventListener("click", () => saveMdToRepo());
   const mdTa = $("#md-editor-textarea");
   mdTa?.addEventListener("input", scheduleMdEditorPreview);
@@ -747,24 +1052,25 @@ function extractEvidenceFileRefs(detail) {
   return out;
 }
 
-/** 저장소 `행정심판청구(증거)/최종/갑호증/` — 폴더 필터·경로 판별에 공통 사용 */
-const GAB_REPO_PATH_MARKER = "행정심판청구(증거)/최종/갑호증/";
-/** 저장소 `행정심판청구(증거)/최종/법령정보/` — 경로·표시 판별 */
-const LAW_REPO_PATH_MARKER = "행정심판청구(증거)/최종/법령정보/";
-/** 이전 트리(폴더 이동 전) — rel·서빙 폴백용 */
-const LEGACY_GAB_MARKER = "행정심판청구(증거)/갑호증/";
-const LEGACY_LAW_MARKER = "행정심판청구(증거)/법령정보/";
-/** 조판본 판례 PDF — `precedentFiles`에서 사건번호 매핑 시 최종본보다 우선 */
-const PDF2_LAW_MARKER = "행정심판청구(증거)/pdf_2_pdf/법령정보/";
+/** 저장소 루트 통합 편철 — `tools/build_commission_evidence_json.py`·start.js 와 동일 */
+const GAB_EVIDENCE_PRIMARY_MARKER = "갑호증및법령정보/";
+const GAB_EVIDENCE_USB_MARKER = "USB/갑호증및법령정보/";
+const COMBINED_LAW_SUBFOLDER = "법령정보/";
+const PRECEDENT_LAW_COMBINED_MARKER = "갑호증및법령정보/법령정보/";
+const PRECEDENT_LAW_USB_MARKER = "USB/갑호증및법령정보/법령정보/";
+/** 별지 등에 남은 구 `…/증거/…` 문구 표시용(신규 rel은 루트 갑 폴더만 사용) */
 const EVIDENCE_REPO_PREFIX_CANON = "행정심판청구(증거)/최종/";
 const EVIDENCE_REPO_PREFIX_LEGACY = "행정심판청구(증거)/";
 
-/** 표시용: 정본 `…/증거/최종/` 또는 구 `…/증거/` 접두 제거 */
+/** 표시용: 구 증거 접두 또는 루트 갑 폴더 접두 제거 */
 function sliceEvidenceTail(rel) {
   const n = String(rel || "")
     .replace(/\\/g, "/")
     .replace(/^\/+/, "")
     .normalize("NFC");
+  if (n.startsWith(GAB_EVIDENCE_PRIMARY_MARKER))
+    return n.slice(GAB_EVIDENCE_PRIMARY_MARKER.length);
+  if (n.startsWith(GAB_EVIDENCE_USB_MARKER)) return n.slice(GAB_EVIDENCE_USB_MARKER.length);
   if (n.startsWith(EVIDENCE_REPO_PREFIX_CANON)) return n.slice(EVIDENCE_REPO_PREFIX_CANON.length);
   if (n.startsWith(EVIDENCE_REPO_PREFIX_LEGACY)) return n.slice(EVIDENCE_REPO_PREFIX_LEGACY.length);
   return n;
@@ -772,29 +1078,23 @@ function sliceEvidenceTail(rel) {
 
 function evidenceFileToRel(ref) {
   const n = ref.replace(/\\/g, "/");
-  return `${GAB_REPO_PATH_MARKER}${n}`;
+  return `${GAB_EVIDENCE_PRIMARY_MARKER}${n}`;
 }
 
-/** detail·버튼 등: 이미 저장소 `행정심판청구(증거)/…` 전체 경로면 true */
+/** detail·버튼 등: 이미 `/serve/` 가능한 갑·법령정보 전체 경로면 true */
 function isCompleteEvidenceMediaRel(p) {
   const n = String(p || "")
     .replace(/\\/g, "/")
     .replace(/^\/+/, "")
     .normalize("NFC");
-  if (!n.startsWith("행정심판청구(증거)/")) return false;
-  if (n.startsWith("행정심판청구(증거)/pdf_2_pdf/")) return true;
   return (
-    n.includes("/갑호증/") ||
-    n.includes("/법령정보/") ||
-    n.includes("/첨부/") ||
-    n.includes("/(국가법령정보)판례모음/") ||
-    n.includes("/작업/")
+    n.startsWith(GAB_EVIDENCE_PRIMARY_MARKER) || n.startsWith(GAB_EVIDENCE_USB_MARKER)
   );
 }
 
 /**
- * 백틱 등 **파일명만** 올 때 `gabFiles`에서 실제 편철 rel(예: `…/갑호증/갑제4호증/갑제4-1….pdf`)을 찾는다.
- * 없으면 null — `/serve/`·`pdf_2_pdf` 대응은 저장소 상대 경로가 맞아야 `start.js`가 조판본을 연다.
+ * 백틱 등 **파일명만** 올 때 `gabFiles`에서 실제 편철 rel(예: `갑호증및법령정보/갑제4호증/갑제4-1….pdf`)을 찾는다.
+ * 없으면 null — `/serve/` 는 저장소 상대 경로가 맞아야 `start.js`가 파일을 연다.
  * @param {string} leafOrPath
  * @param {Array<{ rel?: string }>|undefined} gabList — 생략 시 `metaGlobal.gabFiles`
  */
@@ -832,9 +1132,14 @@ function collectRelsForEvidenceRow(row) {
     add(resolveGabLeafToRel(f) || evidenceFileToRel(f));
   }
   const d = String(row.detail || "");
-  const rePath = /행정심판청구\(증거\)(?:\/최종)?\/갑호증\/[^\s`'"]+/g;
+  const rePrimary = /갑호증및법령정보\/[^\s`'"]+/g;
   let m;
-  while ((m = rePath.exec(d)) !== null) {
+  while ((m = rePrimary.exec(d)) !== null) {
+    add(m[0]);
+  }
+  const reUsb = /USB\/갑호증및법령정보\/[^\s`'"]+/g;
+  reUsb.lastIndex = 0;
+  while ((m = reUsb.exec(d)) !== null) {
     add(m[0]);
   }
   return out;
@@ -873,18 +1178,14 @@ function extractGabMajorFromKey(k) {
   return /^\d+$/.test(head) ? head : null;
 }
 
-/** 갑8-1·9-1은 QR PNG가 아니라 동영상으로 인용(청구서: 동일 통합본·주제별 보조 영상). */
+/** 갑8-1은 QR PNG가 아니라 동영상으로 인용(청구서: 동일 통합본·주제별 보조 영상). 갑9-1은 정본 `갑제9-1호증_…`(PDF·이미지)로 인용. */
 /** 우선: `갑제6-2호증_…_동영상.mp4` — 구명 `갑제6-2증_…_동영상_통합.mp4` 는 GAB62_UNIFIED_BASENAMES[1] */
 const GAB62_UNIFIED_MP4_FALLBACK =
-  "행정심판청구(증거)/최종/갑호증/갑제6-2호증_건축과_도로·통행_동영상(건축과-25898).mp4";
+  "갑호증및법령정보/갑제6호증/갑제6-2호증_건축과_도로·통행_동영상(건축과-25898).mp4";
 /** 갑호증 루트 표준명(우선) — 구명 `영상_동춘동198_*.mp4` 는 하위 호환 */
 const GAB81_VIDEO_PREFER_BASENAMES = [
   "갑호증_동춘동198_항공사진.mp4",
   "영상_동춘동198_항공사진.mp4",
-];
-const GAB91_VIDEO_PREFER_BASENAMES = [
-  "갑호증_동춘동198_위법행정.mp4",
-  "영상_동춘동198_위법행정.mp4",
 ];
 const GAB62_UNIFIED_BASENAMES = [
   "갑제6-2호증_건축과_도로·통행_동영상(건축과-25898).mp4",
@@ -959,6 +1260,14 @@ function allCaseIdsFromPrecedentEntry(f) {
   return out;
 }
 
+/** `갑호증/법령정보/`·통합 `갑호증 및 법령정보/법령정보/` 판례 PDF는 단독 법령정보 폴더보다 매핑 우선 */
+function relIsHighPriorityPrecedentLaw(rel) {
+  const s = String(rel || "");
+  return (
+    s.includes(PRECEDENT_LAW_COMBINED_MARKER) || s.includes(PRECEDENT_LAW_USB_MARKER)
+  );
+}
+
 function buildCiteMaps(meta, evidence) {
   const caseById = new Map();
   const pref = meta.precedentFiles || [];
@@ -968,12 +1277,11 @@ function buildCiteMaps(meta, evidence) {
     const lab = String(f.label || "");
     const ids = allCaseIdsFromPrecedentEntry(f);
     const prefer = /^\d{2}_/.test(lab) && !lab.includes("국가법령정보");
-    const isPdf2Law = rel.includes(PDF2_LAW_MARKER);
+    const isUnderGabLaw = relIsHighPriorityPrecedentLaw(rel);
     for (const id of ids) {
       const prev = caseById.get(id);
-      const prevIsPdf2Law =
-        prev && String(prev).includes(PDF2_LAW_MARKER);
-      if (!prev || isPdf2Law || (prefer && !prevIsPdf2Law)) {
+      const prevUnderGabLaw = prev && relIsHighPriorityPrecedentLaw(prev);
+      if (!prev || isUnderGabLaw || (prefer && !prevUnderGabLaw)) {
         caseById.set(id, rel);
       }
     }
@@ -1033,16 +1341,20 @@ function buildCiteMaps(meta, evidence) {
       if (relOne && !gabByKey.has(key)) gabByKey.set(key, relOne);
     }
   }
-  /** 주번호 1~13: 우측 패널에 `갑제N호증` 폴더 전체 썸네일(`__GAB_FOLDER__:N`). 가지번호는 기존처럼 단일 파일 rel */
-  for (let n = 1; n <= 13; n += 1) {
+  /** 주번호 1~14: 우측 패널에 `갑제N호증` 폴더 전체 썸네일(`__GAB_FOLDER__:N`). */
+  for (let n = 1; n <= 14; n += 1) {
     gabByKey.set(String(n), `__GAB_FOLDER__:${n}`);
   }
   /** 본문 「갑 제8-1호증」은 QR 파일이 아니라 갑8 묶음(썸네일) → 갑8-1 QR 썸네일에서 동영상 */
   gabByKey.set("8-1", "__GAB_BUNDLE__:8");
-  gabByKey.set(
-    "9-1",
-    resolveCiteVideoRelForGab81Or91(gab, gabByKey, GAB91_VIDEO_PREFER_BASENAMES)
-  );
+  /** 가지번호(4-1 등) 더블클릭 시 주번호 폴더 전체 썸네일 — 8-1만 예외(갑8 묶음·동영상). 갑9-1 등은 갑제9호증 폴더와 동일하게 전체 그리드 */
+  const branchFolderExceptions = new Set(["8-1"]);
+  for (const key of [...gabByKey.keys()]) {
+    if (branchFolderExceptions.has(key)) continue;
+    if (!/^\d+-\d+$/.test(key)) continue;
+    const maj = key.split("-")[0];
+    gabByKey.set(key, `__GAB_FOLDER__:${maj}`);
+  }
   return { caseById, gabByKey };
 }
 
@@ -1056,6 +1368,22 @@ const ATTACH_SECTION_PREFIX = "첨부/";
 const LAW_SECTION_PREFIX = "법령정보/";
 /** `작업/기타참고/` — 작업 폴더로 옮긴 참고 자료(표시용 경로 축약) */
 const WORK_OTHER_REF_PREFIX = "작업/기타참고/";
+
+/** `sliceEvidenceTail` 직후 통합·구 갑·첨부·법령 접두를 걷어 표시용 꼬리만 남김 */
+function trimEvidenceTailAfterSlice(tail) {
+  let t = String(tail || "");
+  if (t.startsWith(GAB_EVIDENCE_PRIMARY_MARKER)) {
+    t = t.slice(GAB_EVIDENCE_PRIMARY_MARKER.length);
+  }
+  if (t.startsWith(GAB_EVIDENCE_USB_MARKER)) {
+    t = t.slice(GAB_EVIDENCE_USB_MARKER.length);
+  }
+  if (t.startsWith(GAB_SECTION_PREFIX)) t = t.slice(GAB_SECTION_PREFIX.length);
+  if (t.startsWith(ATTACH_SECTION_PREFIX)) t = t.slice(ATTACH_SECTION_PREFIX.length);
+  if (t.startsWith(LAW_SECTION_PREFIX)) t = t.slice(LAW_SECTION_PREFIX.length);
+  if (t.startsWith(WORK_OTHER_REF_PREFIX)) t = t.slice(WORK_OTHER_REF_PREFIX.length);
+  return t;
+}
 
 /**
  * 폴더·파일명 관례 `첨부(갑제N호증)_` — 갑호증 그룹 아래에서는 '첨부'로 오해되지 않게 표시용으로만 제거.
@@ -1092,11 +1420,7 @@ function refOptionDisplayLabel(it) {
   ) {
     return label;
   }
-  let tail = sliceEvidenceTail(rel);
-  if (tail.startsWith(GAB_SECTION_PREFIX)) tail = tail.slice(GAB_SECTION_PREFIX.length);
-  if (tail.startsWith(ATTACH_SECTION_PREFIX)) tail = tail.slice(ATTACH_SECTION_PREFIX.length);
-  if (tail.startsWith(LAW_SECTION_PREFIX)) tail = tail.slice(LAW_SECTION_PREFIX.length);
-  if (tail.startsWith(WORK_OTHER_REF_PREFIX)) tail = tail.slice(WORK_OTHER_REF_PREFIX.length);
+  let tail = trimEvidenceTailAfterSlice(sliceEvidenceTail(rel));
   if (label && (label.includes("첨부(") || /갑제\d/.test(label) || label.includes("/"))) {
     const out = label.length >= tail.length ? label : tail;
     return stripCheomboFromDisplayPath(out);
@@ -1109,11 +1433,7 @@ function modalDocTitleFromRel(rel) {
   const norm = String(rel || "")
     .replace(/\\/g, "/")
     .normalize("NFC");
-  let tail = sliceEvidenceTail(rel);
-  if (tail.startsWith(GAB_SECTION_PREFIX)) tail = tail.slice(GAB_SECTION_PREFIX.length);
-  if (tail.startsWith(ATTACH_SECTION_PREFIX)) tail = tail.slice(ATTACH_SECTION_PREFIX.length);
-  if (tail.startsWith(LAW_SECTION_PREFIX)) tail = tail.slice(LAW_SECTION_PREFIX.length);
-  if (tail.startsWith(WORK_OTHER_REF_PREFIX)) tail = tail.slice(WORK_OTHER_REF_PREFIX.length);
+  let tail = trimEvidenceTailAfterSlice(sliceEvidenceTail(rel));
   const t = tail || norm.split("/").filter(Boolean).pop() || String(rel);
   return stripCheomboFromDisplayPath(t);
 }
@@ -1437,7 +1757,7 @@ function isCiteLinkSidePanel(a) {
     a &&
       a.closest &&
       a.closest(
-        "#section-appeal, #section-injunction, #section-gab1, #section-gab2, #section-gab3, #cite-preview-aside"
+        "#section-appeal, #section-injunction, #section-gab1, #section-gab2, #section-gab3, #section-gab4, #cite-preview-aside"
       )
   );
 }
@@ -1447,13 +1767,16 @@ function citePreviewOptsForAnchor(a) {
     return { heading: "별첨·참고", lead: DOC_PREVIEW_LEAD_CITE };
   }
   if (a.closest("#section-gab1")) {
-    return { heading: "별지(갑1호증)", lead: DOC_PREVIEW_LEAD_GAB_LINK };
+    return { heading: "별지 제1호", lead: DOC_PREVIEW_LEAD_GAB_LINK };
   }
   if (a.closest("#section-gab2")) {
-    return { heading: "별지(갑2호증)", lead: DOC_PREVIEW_LEAD_APPENDIX_CITE };
+    return { heading: "별지 제2호", lead: DOC_PREVIEW_LEAD_APPENDIX_CITE };
   }
   if (a.closest("#section-gab3")) {
-    return { heading: "별지(갑3호증)", lead: DOC_PREVIEW_LEAD_APPENDIX_CITE };
+    return { heading: "별지 제3호", lead: DOC_PREVIEW_LEAD_APPENDIX_CITE };
+  }
+  if (a.closest("#section-gab4")) {
+    return { heading: "별지 제4호", lead: DOC_PREVIEW_LEAD_APPENDIX_CITE };
   }
   return {};
 }
@@ -1495,9 +1818,10 @@ function bindCiteClickHandlers() {
 
 function bindBijeServeLinkDblClick() {
   const sections = [
-    { sel: "#section-gab1", heading: "별지(갑1호증)" },
-    { sel: "#section-gab2", heading: "별지(갑2호증)" },
-    { sel: "#section-gab3", heading: "별지(갑3호증)" },
+    { sel: "#section-gab1", heading: "별지 제1호" },
+    { sel: "#section-gab2", heading: "별지 제2호" },
+    { sel: "#section-gab3", heading: "별지 제3호" },
+    { sel: "#section-gab4", heading: "별지 제4호" },
   ];
   document.addEventListener("dblclick", (e) => {
     for (const { sel, heading } of sections) {
@@ -1583,13 +1907,13 @@ function isLawInfoPdfRel(rel) {
 
 /**
  * 판례·법령정보 PDF: 1쪽만 작은 캔버스로 썸네일 표시(더블클릭 시 모달 전체).
- * `/serve/`는 조판본(`pdf_2_pdf/법령정보`)이 있으면 그 파일을 반환하므로 본문도 조판 기준입니다.
+ * `/serve/`는 저장소에 둔 PDF 경로를 그대로 연다.
  */
 async function mountLawPdfThumbnailsInPreview(mount, pdfUrl, rel, errEl) {
   const topHint = document.createElement("p");
   topHint.className = "cite-preview-inline-hint law-precedent-thumb-hint";
   topHint.textContent =
-    "1쪽 미리보기입니다. 더블클릭하면 전체 PDF를 큰 화면(모달)으로 엽니다. " + VIEWER_CLOSE_HINT;
+    "1쪽 미리보기입니다. 더블클릭하면 전체 PDF를 전체 화면으로 엽니다. " + VIEWER_CLOSE_HINT;
   mount.appendChild(topHint);
 
   const grid = document.createElement("div");
@@ -1603,9 +1927,7 @@ async function mountLawPdfThumbnailsInPreview(mount, pdfUrl, rel, errEl) {
 
   try {
     const pdfjsLib = await loadPdfJs();
-    const pdf = await pdfjsLib
-      .getDocument({ url: pdfUrl, withCredentials: false })
-      .promise;
+    const pdf = await pdfjsLib.getDocument(pdfJsDocumentParams(pdfUrl)).promise;
     loading.remove();
     const total = pdf.numPages;
     const fname = normRelPosix(rel).split("/").pop() || rel;
@@ -1644,7 +1966,7 @@ async function mountLawPdfThumbnailsInPreview(mount, pdfUrl, rel, errEl) {
     canvas.setAttribute("role", "button");
     canvas.setAttribute(
       "aria-label",
-      `1쪽 미리보기 — 더블클릭하면 전체 PDF(모달). ${VIEWER_CLOSE_HINT}`
+      `1쪽 미리보기 — 더블클릭하면 전체 PDF를 전체 화면으로. ${VIEWER_CLOSE_HINT}`
     );
     canvas.addEventListener("dblclick", (e) => {
       e.preventDefault();
@@ -1663,7 +1985,7 @@ async function mountLawPdfThumbnailsInPreview(mount, pdfUrl, rel, errEl) {
     if (total > 1) {
       const more = document.createElement("p");
       more.className = "cite-preview-inline-hint law-precedent-thumb-more";
-      more.textContent = `총 ${total}쪽 문서입니다. 이 패널에는 1쪽만 표시합니다. 전체는 위 썸네일을 더블클릭하여 모달에서 보십시오.`;
+      more.textContent = `총 ${total}쪽 문서입니다. 이 패널에는 1쪽만 표시합니다. 전체는 위 썸네일을 더블클릭하여 전체 화면에서 보십시오.`;
       mount.appendChild(more);
     }
     mount.dataset.inlineCiteRel = rel;
@@ -1688,10 +2010,21 @@ async function loadPdfJs() {
   return pdfjsLibCache;
 }
 
+/** `/serve/` 는 전체 파일 200 응답만 보내고 Range·206 을 처리하지 않음 → pdf.js 기본 range/stream 이 깨질 수 있음 */
+function pdfJsDocumentParams(pdfUrl) {
+  return {
+    url: pdfUrl,
+    withCredentials: false,
+    disableRange: true,
+    disableStream: true,
+  };
+}
+
 /**
  * @param {HTMLElement} container
  * @param {string} pdfUrl
- * @param {{ variant?: "inline" | "modal", toolbarHidden?: boolean, modalTitle?: string, fitWidth?: boolean, thumbFirstPageOnly?: boolean }} [opts]
+ * @param {{ variant?: "inline" | "modal", toolbarHidden?: boolean, modalTitle?: string, fitWidth?: boolean, thumbFirstPageOnly?: boolean, evidenceRel?: string }} [opts]
+ *   evidenceRel: 저장소 rel(갑호증 매칭). 없으면 pdfUrl에서 `/serve/` 로 복원.
  *   toolbarHidden: 인라인에서만 — 확대/축소 바 숨김, 더블클릭 시 모달(바 표시)로 연다.
  *   fitWidth: 인라인에서 스크롤 영역 너비에 맞춰 첫 페이지 기준으로 축척을 잡아 가로 스크롤을 피함(리사이즈 시 재계산).
  *   thumbFirstPageOnly: 인라인+툴바 숨김일 때 1쪽만 렌더(다쪽 PDF 깜빡임·과부하 방지). 전체는 모달.
@@ -1709,9 +2042,40 @@ async function mountPdfJsViewer(container, pdfUrl, opts = {}) {
   container.appendChild(loading);
 
   const pdfjsLib = await loadPdfJs();
-  const task = pdfjsLib.getDocument({ url: pdfUrl, withCredentials: false });
+  const task = pdfjsLib.getDocument(pdfJsDocumentParams(pdfUrl));
   const pdf = await task.promise;
   loading.remove();
+
+  const evidenceRelForDisplay =
+    String(opts.evidenceRel || "").trim() || relFromServeUrl(pdfUrl) || "";
+  const forceLandscapePdf =
+    evidenceRelForDisplay.length > 0 &&
+    pdfRelForceLandscapeDisplay(evidenceRelForDisplay);
+
+  /** 묶음·인용 1쪽 썸네일: 첫 쪽이 가로형이거나(forceLandscape) 세로 PDF인데 가로 사진 오버라이드면 박스를 가로에 맞춤. */
+  let thumbPage1Ar = 0;
+  if (thumbFirstPageOnly && pdf.numPages >= 1) {
+    try {
+      const p0 = await pdf.getPage(1);
+      const v0 = p0.getViewport({ scale: 1 });
+      if (v0.height > 0) {
+        const naturalLandscape = v0.width >= v0.height * 1.05;
+        const portraitPage = v0.width < v0.height * 0.98;
+        const useLandscapeThumb =
+          naturalLandscape || (forceLandscapePdf && portraitPage);
+        if (useLandscapeThumb) {
+          thumbPage1Ar = naturalLandscape
+            ? v0.width / v0.height
+            : v0.height / v0.width;
+          if (container.classList && container.classList.contains("detail-gab3-pdf-mount")) {
+            container.classList.add("detail-gab3-pdf-mount--landscape");
+          }
+        }
+      }
+    } catch {
+      /* 무시 */
+    }
+  }
 
   const wrap = document.createElement("div");
   wrap.className =
@@ -1751,7 +2115,13 @@ async function mountPdfJsViewer(container, pdfUrl, opts = {}) {
       : "pdf-viewer-scroll";
 
   let scale = 1;
-  const minScale = fitWidth ? 0.12 : 0.5;
+  const minScale = fitWidth
+    ? thumbFirstPageOnly
+      ? 0.02
+      : 0.12
+    : variant === "modal"
+      ? 0.05
+      : 0.5;
   const maxScale = 2.5;
   const step = 0.1;
 
@@ -1759,17 +2129,29 @@ async function mountPdfJsViewer(container, pdfUrl, opts = {}) {
     if (!fitWidth || pdf.numPages < 1) return;
     /** 스크롤바 유무로 `scroll.clientWidth` 가 흔들리면 ResizeObserver → 재렌더 루프(깜빡임)가 난다. 래퍼 폭 기준. */
     let cw = wrap.clientWidth;
+    let ch = wrap.clientHeight;
     if (cw < 32) {
       await new Promise((r) => requestAnimationFrame(r));
       cw = wrap.clientWidth;
+      ch = wrap.clientHeight;
     }
     const page1 = await pdf.getPage(1);
     const baseVp = page1.getViewport({ scale: 1 });
     if (cw > 0 && baseVp.width > 0) {
       const pad = 6;
-      const raw = (cw - pad * 2) / baseVp.width;
+      let raw = (cw - pad * 2) / baseVp.width;
+      /** 묶음 1쪽 썸네일: CSS 고정 높이 박스 안에 전체가 들어가도록 가로·세로 중 작은 축 기준(이미지 썸네일과 동일 시각 크기). */
+      if (thumbFirstPageOnly && baseVp.height > 0) {
+        const effCh = ch > 32 ? ch : BUNDLE_THUMB_BOX_HEIGHT_PX;
+        const rawH = (effCh - pad * 2) / baseVp.height;
+        raw = Math.min(raw, rawH);
+      }
       scale = Math.min(1, Math.max(minScale, raw));
-      scale = Math.round(scale * 100) / 100;
+      if (thumbFirstPageOnly) {
+        scale = Math.max(0.02, Math.round(scale * 1000) / 1000);
+      } else {
+        scale = Math.round(scale * 100) / 100;
+      }
     }
   }
 
@@ -1831,26 +2213,91 @@ async function mountPdfJsViewer(container, pdfUrl, opts = {}) {
   } else {
     wrap.append(toolbar, scroll);
   }
+
+  async function syncLandscapeThumbFrameSize() {
+    if (!(thumbFirstPageOnly && thumbPage1Ar > 0)) return;
+    wrap.classList.add("pdf-viewer-wrap--thumb-landscape");
+    await new Promise((r) => requestAnimationFrame(r));
+    let cw = wrap.clientWidth;
+    if (cw < 48) {
+      await new Promise((r) => requestAnimationFrame(r));
+      cw = wrap.clientWidth;
+    }
+    const pad = 8;
+    let h = Math.round((cw - pad * 2) / thumbPage1Ar);
+    h = Math.min(h, BUNDLE_THUMB_BOX_HEIGHT_PX);
+    h = Math.max(h, 112);
+    wrap.style.height = `${h}px`;
+    wrap.style.minHeight = `${h}px`;
+    wrap.style.maxHeight = `${h}px`;
+  }
+
   container.appendChild(wrap);
+  if (thumbPage1Ar > 0) {
+    await syncLandscapeThumbFrameSize();
+  }
+  if (variant === "modal" && pdf.numPages >= 1) {
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    const cw = scroll.clientWidth;
+    const ch = scroll.clientHeight;
+    if (cw >= 16 && ch >= 16) {
+      const page1 = await pdf.getPage(1);
+      const vp1 = page1.getViewport({ scale: 1 });
+      const ow = vp1.width;
+      const oh = vp1.height;
+      const swapOrient =
+        forceLandscapePdf && ow > 0 && oh > 0 && ow < oh * 0.98;
+      const dispW = swapOrient ? oh : ow;
+      const dispH = swapOrient ? ow : oh;
+      const k = Math.min(cw / vp1.width, ch / vp1.height, 1);
+      scale = Math.max(minScale, Math.min(maxScale, k));
+      setViewerModalOrientationFromAspect(dispW, dispH);
+      const vm = viewerModal();
+      if (vm) {
+        if (vm.getAttribute("data-viewer-orientation") === "landscape") {
+          vm.setAttribute("data-viewer-content", "pdf");
+          tryViewerLandscapeLockForWideImage(dispW, dispH);
+        } else {
+          vm.removeAttribute("data-viewer-content");
+        }
+      }
+    }
+  }
   await renderPages();
 
   if (thumbFirstPageOnly && pdf.numPages > 1) {
     const note = document.createElement("p");
     note.className = "cite-preview-inline-hint pdf-thumb-page-hint";
-    note.textContent = `총 ${pdf.numPages}쪽 문서입니다. 이 패널에는 1쪽만 보입니다. 더블클릭하면 전체(모달)에서 봅니다.`;
+    note.textContent = `총 ${pdf.numPages}쪽 문서입니다. 이 패널에는 1쪽만 보입니다. 더블클릭하면 전체 화면에서 봅니다.`;
     container.appendChild(note);
   }
 
   let resizeFitTimer = 0;
   let lastObservedWrapW = 0;
-  if (fitWidth && !thumbFirstPageOnly) {
+  let lastObservedWrapH = 0;
+  if (fitWidth) {
     const ro = new ResizeObserver((entries) => {
-      const w = Math.round(entries[0]?.contentRect?.width ?? 0);
-      if (w > 0 && Math.abs(w - lastObservedWrapW) < 2) return;
+      const cr = entries[0]?.contentRect;
+      const w = Math.round(cr?.width ?? 0);
+      const h = Math.round(cr?.height ?? 0);
+      if (
+        w > 0 &&
+        Math.abs(w - lastObservedWrapW) < 2 &&
+        Math.abs(h - lastObservedWrapH) < 2
+      ) {
+        return;
+      }
       lastObservedWrapW = w;
+      lastObservedWrapH = h;
       clearTimeout(resizeFitTimer);
       resizeFitTimer = window.setTimeout(() => {
-        renderPages().catch((e) => console.error(e));
+        (async () => {
+          if (thumbPage1Ar > 0) {
+            await syncLandscapeThumbFrameSize();
+          }
+          await renderPages();
+        })().catch((e) => console.error(e));
       }, 160);
     });
     ro.observe(wrap);
@@ -1916,6 +2363,18 @@ async function mountImageZoomViewer(container, imageUrl, opts = {}) {
     zoomLabel.textContent = `${Math.round(scale * 100)}%`;
   }
 
+  /** 뷰포트 안에 이미지 전체가 들어가도록 초기 배율(가로·세로 중 작은 쪽 기준). */
+  function applyFitToView() {
+    const w0 = scroll.clientWidth;
+    const h0 = scroll.clientHeight;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (w0 < 8 || h0 < 8 || nw < 1 || nh < 1) return;
+    const k = Math.min(w0 / nw, h0 / nh, 1);
+    scale = Math.max(minScale, (nw * k) / w0);
+    applyZoom();
+  }
+
   btnMinus.addEventListener("click", () => {
     scale = Math.max(minScale, Math.round((scale - step) * 10) / 10);
     applyZoom();
@@ -1944,7 +2403,13 @@ async function mountImageZoomViewer(container, imageUrl, opts = {}) {
       img.onerror = () => reject(new Error("image-load"));
       if (img.complete && img.naturalWidth > 0) resolve();
     });
-    applyZoom();
+    setViewerModalOrientationFromAspect(img.naturalWidth, img.naturalHeight);
+    tryViewerLandscapeLockForWideImage(img.naturalWidth, img.naturalHeight);
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    applyFitToView();
+    await new Promise((r) => requestAnimationFrame(r));
+    applyFitToView();
   } catch {
     container.replaceChildren();
     const err = document.createElement("p");
@@ -1956,6 +2421,43 @@ async function mountImageZoomViewer(container, imageUrl, opts = {}) {
 }
 
 const viewerModal = () => $("#viewer-modal");
+
+/**
+ * 전체화면 뷰어: 콘텐츠 가로·세로 비율에 맞춰 CSS·초기 맞춤에 사용.
+ * @param {number} w
+ * @param {number} h
+ */
+function setViewerModalOrientationFromAspect(w, h) {
+  const el = viewerModal();
+  if (!el || !(w > 0) || !(h > 0)) return;
+  const rw = w / h;
+  if (rw >= 1.05) el.setAttribute("data-viewer-orientation", "landscape");
+  else if (rw <= 0.95) el.setAttribute("data-viewer-orientation", "portrait");
+  else el.setAttribute("data-viewer-orientation", "square");
+}
+
+/** 가로가 더 긴 사진: 전체화면에서 가로 보기(레이아웃 + 가능 시 화면 가로 고정). */
+function tryViewerLandscapeLockForWideImage(nw, nh) {
+  if (!(nw > 0) || !(nh > 0) || nw < nh * 1.02) return;
+  try {
+    const o = screen.orientation;
+    if (!o || typeof o.lock !== "function") return;
+    o.lock("landscape")
+      .then(() => {
+        viewerOrientationUnlock = () => {
+          try {
+            o.unlock();
+          } catch {
+            /* 일부 브라우저 미지원 */
+          }
+          viewerOrientationUnlock = null;
+        };
+      })
+      .catch(() => {});
+  } catch {
+    /* 보안 컨텍스트·권한 없음 등 */
+  }
+}
 
 /** 본문 인용 등에서 `rel`로 전체 창(모달) 뷰어를 연다. */
 async function openRefDocFullscreen(rel) {
@@ -2020,9 +2522,43 @@ function openViewerModal() {
   });
 }
 
+function exitDocumentFullscreen() {
+  try {
+    const active =
+      document.fullscreenElement || document.webkitFullscreenElement;
+    if (!active) return;
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+      return;
+    }
+    if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  } catch {
+    /* 일부 환경 미지원 */
+  }
+}
+
+function requestElementFullscreen(el) {
+  if (!el) return;
+  const req =
+    el.requestFullscreen ||
+    el.webkitRequestFullscreen ||
+    el.webkitRequestFullScreen ||
+    el.mozRequestFullScreen ||
+    el.msRequestFullscreen;
+  if (req) req.call(el).catch(() => {});
+}
+
 function closeViewerModal() {
+  if (viewerOrientationUnlock) {
+    viewerOrientationUnlock();
+  }
+  exitDocumentFullscreen();
   const el = viewerModal();
   el.hidden = true;
+  el.removeAttribute("data-viewer-orientation");
+  el.removeAttribute("data-viewer-content");
   $("#viewer-body").replaceChildren();
   document.body.classList.remove("modal-open");
   if (viewerBackgroundScroll !== null) {
@@ -2038,6 +2574,7 @@ function showModal(title, kind, payload) {
   $("#viewer-title").textContent = title;
   const body = $("#viewer-body");
   body.replaceChildren();
+  viewerModal().removeAttribute("data-viewer-content");
   if (kind === "md") {
     const div = document.createElement("div");
     div.className = "md-content";
@@ -2045,7 +2582,10 @@ function showModal(title, kind, payload) {
     body.appendChild(div);
   } else if (kind === "pdf") {
     openViewerModal();
-    mountPdfJsViewer(body, payload, { variant: "modal" }).catch((e) => {
+    mountPdfJsViewer(body, payload, {
+      variant: "modal",
+      evidenceRel: relFromServeUrl(payload),
+    }).catch((e) => {
       console.error(e);
       body.replaceChildren();
       const err = document.createElement("p");
@@ -2057,6 +2597,7 @@ function showModal(title, kind, payload) {
     return;
   } else if (kind === "image") {
     openViewerModal();
+    viewerModal().setAttribute("data-viewer-content", "image");
     mountImageZoomViewer(body, payload, { alt: title });
     return;
   } else if (kind === "txt") {
@@ -2068,16 +2609,37 @@ function showModal(title, kind, payload) {
     return;
   } else if (kind === "video") {
     openViewerModal();
+    viewerModal().setAttribute("data-viewer-content", "video");
     const video = document.createElement("video");
     video.className = "viewer-video";
     video.controls = true;
     video.src = payload;
+    video.preload = "auto";
     video.setAttribute("playsinline", "");
     video.autoplay = true;
     video.playsInline = true;
     body.appendChild(video);
-    video.addEventListener("loadeddata", () => {
-      video.play().catch(() => {});
+    const tryPlay = () => {
+      const p = video.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    };
+    video.addEventListener("loadedmetadata", () => {
+      setViewerModalOrientationFromAspect(video.videoWidth, video.videoHeight);
+      if (video.videoWidth >= video.videoHeight * 1.02) {
+        tryViewerLandscapeLockForWideImage(
+          video.videoWidth,
+          video.videoHeight
+        );
+      }
+      tryPlay();
+    });
+    video.addEventListener("canplay", tryPlay, { once: true });
+    video.addEventListener("loadeddata", tryPlay);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        requestElementFullscreen(viewerModal());
+        tryPlay();
+      });
     });
     video.addEventListener("dblclick", (ev) => {
       ev.preventDefault();
@@ -2111,33 +2673,6 @@ function bundleThumbInstruction() {
 }
 
 /**
- * `start.js` 의 `pdf2PdfAlternateNorm` 과 동일 규칙.
- * 갑호증 폴더의 JPG·PNG 등 → `pdf_2_pdf/갑호증/… .pdf` 조판 경로(디스크에 없을 수 있음).
- * `<img src=…jpg>` 는 서버가 PDF를 돌려줘도 화면에 못 그리므로, 썸네일은 이 경로로 PDF.js를 씁니다.
- */
-function gabPdf2AlternateRel(rel) {
-  const n = normRelPosix(rel);
-  const pairs = [
-    ["행정심판청구(증거)/최종/갑호증/", "행정심판청구(증거)/pdf_2_pdf/갑호증/"],
-    ["행정심판청구(증거)/갑호증/", "행정심판청구(증거)/pdf_2_pdf/갑호증/"],
-  ];
-  for (const [from, to] of pairs) {
-    if (!n.startsWith(from)) continue;
-    const tail = n.slice(from.length);
-    if (!tail) return null;
-    const li = tail.lastIndexOf(".");
-    if (li < 0) return null;
-    const ext = tail.slice(li).toLowerCase();
-    if ([".mp4", ".webm", ".mov", ".avi"].includes(ext)) return null;
-    const rasterOrPdf = [".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".pdf"];
-    if (!rasterOrPdf.includes(ext)) return null;
-    const base = tail.slice(0, li);
-    return to + base + ".pdf";
-  }
-  return null;
-}
-
-/**
  * 분할 묶음 썸네일 그리드.
  * @param {{ skipScopeParagraph?: boolean }} [opts] — skipScopeParagraph: 이미 위에 범위 문구가 있을 때 그리드 안 중복 생략.
  */
@@ -2161,7 +2696,7 @@ function appendGabBundleGrid(container, row, opts = {}) {
   if (hasPdf) {
     const onlyPdf = rels.every((r) => String(r).toLowerCase().endsWith(".pdf"));
     let base = onlyPdf
-      ? "PDF는 호증 번호 순서대로 각 파일의 1쪽만 이 영역에 썸네일로 표시됩니다. 모든 쪽·확대·축소는 각 블록을 더블클릭한 전체 화면(모달)에서 하십시오."
+      ? "PDF는 호증 번호 순서대로 각 파일의 1쪽만 이 영역에 썸네일로 표시됩니다. 모든 쪽·확대·축소는 각 블록을 더블클릭한 전체 화면에서 하십시오."
       : hasImageOnlyThumb
         ? "PDF는 순서대로 1쪽 썸네일만 표시됩니다(더블클릭 시 전체·모든 쪽·확대/축소). 사진 썸네일은 더블클릭하면 전체 창으로 열 수 있습니다."
         : "PDF는 순서대로 1쪽 썸네일만 표시됩니다. 더블클릭하면 전체 화면에서 모든 쪽을 볼 수 있고 확대·축소할 수 있습니다.";
@@ -2178,6 +2713,8 @@ function appendGabBundleGrid(container, row, opts = {}) {
   grid.className = hasPdf
     ? "detail-gab3-grid detail-gab3-grid--pdf-stack"
     : "detail-gab3-grid";
+  /** 그리드를 먼저 붙여 두어 PDF·이미지 썸네일이 고정 높이 박스 크기를 읽을 수 있게 함 */
+  container.appendChild(grid);
   rels.forEach((rel, idx) => {
     const lower = String(rel).toLowerCase();
     const fig = document.createElement("figure");
@@ -2204,14 +2741,13 @@ function appendGabBundleGrid(container, row, opts = {}) {
       pdfMount.className = "detail-gab3-pdf-mount";
       fig.appendChild(pdfMount);
       grid.appendChild(fig);
-      const pdf2Gab = gabPdf2AlternateRel(rel);
-      const pdfOpenRel = pdf2Gab || rel;
-      mountPdfJsViewer(pdfMount, serveUrl(pdfOpenRel), {
+      mountPdfJsViewer(pdfMount, serveUrl(rel), {
         variant: "inline",
         toolbarHidden: true,
         fitWidth: true,
         thumbFirstPageOnly: true,
         modalTitle: `${gabLabel} — ${base}`,
+        evidenceRel: rel,
       }).catch((e) => {
         console.error(e);
         pdfMount.textContent =
@@ -2229,6 +2765,13 @@ function appendGabBundleGrid(container, row, opts = {}) {
       vid.autoplay = false;
       vid.setAttribute("playsinline", "");
       vid.title = `${gabLabel} — ${base}`;
+      vid.style.cursor = "pointer";
+      const modalTitle = `${gabLabel} — ${base}`;
+      vid.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showModal(modalTitle, "video", serveUrl(rel));
+      });
       fig.appendChild(vid);
       grid.appendChild(fig);
       return;
@@ -2260,49 +2803,6 @@ function appendGabBundleGrid(container, row, opts = {}) {
         });
         fig.appendChild(img);
         grid.appendChild(fig);
-        return;
-      }
-      const altPdf = gabPdf2AlternateRel(rel);
-      if (altPdf) {
-        const pdfMount = document.createElement("div");
-        pdfMount.className = "detail-gab3-pdf-mount";
-        fig.appendChild(pdfMount);
-        grid.appendChild(fig);
-        mountPdfJsViewer(pdfMount, serveUrl(altPdf), {
-          variant: "inline",
-          toolbarHidden: true,
-          fitWidth: true,
-          thumbFirstPageOnly: true,
-          modalTitle: `${gabLabel} — ${base}`,
-        }).catch((e) => {
-          console.error(e);
-          pdfMount.replaceChildren();
-          const img = document.createElement("img");
-          img.className = "detail-gab3-img";
-          img.src = serveUrl(rel);
-          img.alt = `${gabLabel} (${base})`;
-          img.loading = "lazy";
-          img.decoding = "async";
-          img.style.cursor = "pointer";
-          img.tabIndex = 0;
-          img.setAttribute("role", "button");
-          const openFull = () => openEvidenceFile(rel);
-          img.setAttribute(
-            "aria-label",
-            `${gabLabel} — 더블클릭: 전체 창. ${VIEWER_CLOSE_HINT}`
-          );
-          img.addEventListener("dblclick", (e) => {
-            e.stopPropagation();
-            openFull();
-          });
-          img.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              openFull();
-            }
-          });
-          pdfMount.appendChild(img);
-        });
         return;
       }
       const img = document.createElement("img");
@@ -2340,7 +2840,6 @@ function appendGabBundleGrid(container, row, opts = {}) {
     fig.appendChild(p);
     grid.appendChild(fig);
   });
-  container.appendChild(grid);
 }
 
 /** 인용 토큰 `__GAB_BUNDLE__:`를 내부 묶음 키 `__REF_GAB_BUNDLE__:`와 동일 취급 */
@@ -2365,9 +2864,10 @@ function gabMajorFolderName(major) {
 function relUnderGabMajorFolder(rel, major) {
   const folder = gabMajorFolderName(major);
   const n = normRelPosix(rel);
+  const sub = `${folder}/`;
   return (
-    n.includes(`${LEGACY_GAB_MARKER}${folder}/`) ||
-    n.includes(`${GAB_REPO_PATH_MARKER}${folder}/`)
+    n.includes(`${GAB_EVIDENCE_PRIMARY_MARKER}${sub}`) ||
+    n.includes(`${GAB_EVIDENCE_USB_MARKER}${sub}`)
   );
 }
 
@@ -2424,8 +2924,8 @@ function listGabFolderItemsForMajor(majorStr) {
 function relLooksLikeGabMainPath(rel) {
   const n = normRelPosix(rel);
   if (n.includes("/첨부/")) return false;
-  if (n.includes("행정심판청구(증거)/최종/갑호증/")) return true;
-  if (n.includes("행정심판청구(증거)/갑호증/")) return true;
+  if (n.includes(GAB_EVIDENCE_PRIMARY_MARKER) && /갑제\d+호증\//.test(n)) return true;
+  if (n.includes(GAB_EVIDENCE_USB_MARKER) && /갑제\d+호증\//.test(n)) return true;
   return false;
 }
 
@@ -2610,11 +3110,12 @@ async function openCiteInPreviewPanel(rel, opts = {}) {
           fitWidth: true,
           thumbFirstPageOnly: true,
           modalTitle: pdfTitle,
+          evidenceRel: r,
         });
         const pdfHint = document.createElement("p");
         pdfHint.className = "cite-preview-inline-hint";
         pdfHint.textContent =
-          "전체 쪽·확대·축소: 본문(PDF)을 더블클릭하면 전체 화면(모달)입니다. " + VIEWER_CLOSE_HINT;
+          "전체 쪽·확대·축소: 본문(PDF)을 더블클릭하면 전체 화면입니다. " + VIEWER_CLOSE_HINT;
         mount.appendChild(pdfHint);
         mount.dataset.inlineCiteRel = r;
       }
@@ -2641,7 +3142,7 @@ async function openCiteInPreviewPanel(rel, opts = {}) {
     const sub = document.createElement("p");
     sub.className = "cite-preview-inline-hint";
     sub.textContent =
-      "이 패널에서는 재생 단추로만 재생합니다. 더블클릭하면 전체 화면(모달)에서 자동 재생됩니다. " +
+      "이 패널에서는 재생 단추로만 재생합니다. 더블클릭하면 전체 화면에서 자동 재생됩니다. " +
       VIEWER_CLOSE_HINT;
     mount.appendChild(sub);
     mount.dataset.inlineCiteRel = r;
@@ -2750,15 +3251,17 @@ function augmentGabFilesFromEvidence(meta, evidence) {
 const _KO_SORT = { numeric: true, sensitivity: "base" };
 
 /**
- * `행정심판청구(증거)/최종/갑호증/` 기준 **폴더 경로(상위→하위)** → **파일명** 순 가나다 정렬.
+ * `…/증거/갑호증/`(및 구 `…/최종/갑호증/`) 기준 **폴더 경로(상위→하위)** → **파일명** 순 가나다 정렬.
  * 묶음(`__REF_GAB_BUNDLE__:`)은 표시 라벨로 폴더 키에 넣어 같은 규칙으로 섞인다.
  */
 function gabRelSortKey(rel) {
   const r = String(rel || "");
   const n = normRelPosix(r);
   let rest;
-  if (n.startsWith(GAB_REPO_PATH_MARKER)) rest = n.slice(GAB_REPO_PATH_MARKER.length);
-  else if (n.startsWith(LEGACY_GAB_MARKER)) rest = n.slice(LEGACY_GAB_MARKER.length);
+  if (n.startsWith(GAB_EVIDENCE_PRIMARY_MARKER))
+    rest = n.slice(GAB_EVIDENCE_PRIMARY_MARKER.length);
+  else if (n.startsWith(GAB_EVIDENCE_USB_MARKER))
+    rest = n.slice(GAB_EVIDENCE_USB_MARKER.length);
   else {
     return { folder: "\uFFFF", file: r };
   }
@@ -2815,7 +3318,11 @@ function openEvidenceFile(fileRef) {
     showModal(modalTitle, "image", url);
     return;
   }
-  showModal(modalTitle, "text", "이 창에서는 사진·PDF 파일만 볼 수 있습니다.");
+  if (/\.(mp4|webm|mov|avi)$/i.test(base)) {
+    showModal(modalTitle, "video", url);
+    return;
+  }
+  showModal(modalTitle, "text", "이 창에서는 사진·PDF·동영상 파일만 볼 수 있습니다.");
 }
 
 function bindViewerChrome() {
@@ -2861,8 +3368,10 @@ function stripBundleDetailFilingPaths(detail) {
   let s = String(detail);
   const iPeon = s.indexOf("\n\n편철 루트에서");
   if (iPeon >= 0) s = s.slice(0, iPeon).trimEnd();
-  const iPath = s.search(/\n\n행정심판청구\(증거\)(?:\/최종)?\/갑호증\//);
+  const iPath = s.search(/\n\n갑호증및법령정보\//);
   if (iPath >= 0) s = s.slice(0, iPath).trimEnd();
+  const iUsb = s.search(/\n\nUSB\/갑호증및법령정보\//);
+  if (iUsb >= 0) s = s.slice(0, iUsb).trimEnd();
   return s;
 }
 
@@ -2986,7 +3495,7 @@ function openEvidenceRowInPreviewPanel(row) {
 }
 
 function showSection(id) {
-  ["appeal", "injunction", "gab1", "gab2", "gab3"].forEach((name) => {
+  ["appeal", "injunction", "gab1", "gab2", "gab3", "gab4"].forEach((name) => {
     const el = $(`#section-${name}`);
     if (!el) return;
     const on = name === id;
@@ -3023,6 +3532,16 @@ async function main() {
   const res = await fetch("data/portal-data.json", { cache: "no-store" });
   if (!res.ok) throw new Error("목록 자료를 읽어 오지 못하였습니다.");
   const data = await res.json();
+  try {
+    const ovr = await fetch("data/gab-pdf-display-overrides.json", {
+      cache: "no-store",
+    });
+    if (ovr.ok) {
+      gabPdfDisplayOverrides = await ovr.json();
+    }
+  } catch {
+    /* 오버라이드 없어도 동작 */
+  }
   const srcDisp = await loadSiteDisplayFromSource();
   if (srcDisp) {
     if (srcDisp.siteTitle) data.meta.siteTitle = String(srcDisp.siteTitle);

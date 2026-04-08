@@ -19,7 +19,10 @@ from datetime import date
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-GAB = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+_EVID = _REPO / "행정심판청구(증거)"
+GAB = _EVID / "갑호증"
+if not GAB.is_dir():
+    GAB = _EVID / "최종" / "갑호증"
 
 # 갑 제5-1호증 동영상 — 표준명 또는 구명(통합) 중 하나
 GAB62_VIDEO_ALTERNATIVES = (

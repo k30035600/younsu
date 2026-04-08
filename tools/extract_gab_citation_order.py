@@ -69,7 +69,7 @@ def main() -> None:
     args = p.parse_args()
 
     root = Path(__file__).resolve().parents[1]
-    path = root / "행정심판청구(최종)" / "260405" / "260405_01_행정심판청구서.md"
+    path = root / "행정심판청구(최종)" / "260405(인천행심위)" / "260405_01_행정심판청구서.md"
     text = path.read_text(encoding="utf-8")
     order = extract_order(text)
     if args.markdown:

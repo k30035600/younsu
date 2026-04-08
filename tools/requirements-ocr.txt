@@ -1,0 +1,5 @@
+# pip install -r tools/requirements-ocr.txt
+# Tesseract 엔진: winget install UB-Mannheim.TesseractOCR
+# 한글·영어 학습 데이터: tools/tesseract-user-tessdata/ (kor·eng; 저장소에 포함 또는 아래로 재다운로드)
+pytesseract>=0.3.13
+Pillow>=12.0

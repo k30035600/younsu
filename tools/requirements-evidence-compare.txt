@@ -1,0 +1,3 @@
+# pip install -r tools/requirements-evidence-compare.txt
+# PDF 페이지 수·텍스트 추출: pypdf (없으면 PyMuPDF fitz 시도 — evidence_pdf_official_footer 와 동일 계열)
+pypdf>=4.0

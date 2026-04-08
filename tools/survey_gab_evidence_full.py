@@ -7,7 +7,7 @@
 산출:
   행정심판청구(증거)/YYMMDD_갑호증_전수조사.txt (실행일 기준)
 
-기준 경로는 `build_commission_evidence_json.py`의 `GAB_DIR_REL`(…/증거/갑호증)과 동일합니다.
+기준 경로는 `audit_gab_evidence_folder.py`와 동일(`…/증거/최종/갑호증` 우선, 없으면 `…/증거/갑호증`).
 """
 from __future__ import annotations
 
@@ -18,8 +18,10 @@ from datetime import date
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-GAB = _REPO / "행정심판청구(증거)" / "갑호증"
-GAB_ALT = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+# `audit_gab_evidence_folder.py` 와 동일: `최종/갑호증` 우선, 없으면 `갑호증`
+_GAB_PRIMARY = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+_GAB_FALLBACK = _REPO / "행정심판청구(증거)" / "갑호증"
+GAB = _GAB_PRIMARY if _GAB_PRIMARY.is_dir() else _GAB_FALLBACK
 OUT = _REPO / "행정심판청구(증거)" / f"{date.today().strftime('%y%m%d')}_갑호증_전수조사.txt"
 
 
@@ -34,11 +36,10 @@ def human_size(n: int) -> str:
 
 
 def main() -> None:
-    global GAB
-    if not GAB.is_dir() and GAB_ALT.is_dir():
-        GAB = GAB_ALT
     if not GAB.is_dir():
-        raise SystemExit(f"없음: {GAB} (또는 대체 {GAB_ALT})")
+        raise SystemExit(
+            f"없음: {_GAB_PRIMARY} 또는 {_GAB_FALLBACK} — 증거 폴더를 두 경로 중 한 곳에 두세요."
+        )
 
     ext_count: dict[str, int] = defaultdict(int)
     ext_bytes: dict[str, int] = defaultdict(int)
@@ -131,6 +132,22 @@ def main() -> None:
             lines.append(f"      → {hint}")
     if not any_legacy:
         lines.append("  (구 폴더명 잔재 없음 — 또는 이미 정리됨)")
+    lines.append("")
+
+    lines.append("[하위 법령정보/ — 판례·참고 PDF 요약(통합 편철)]")
+    law_root = GAB / "법령정보"
+    if law_root.is_dir():
+        pdfs = sorted(law_root.rglob("*.pdf"))
+        lines.append(f"  PDF {len(pdfs)}건 (갑호증 기준 상대경로)")
+        for p in pdfs:
+            rel = p.relative_to(GAB).as_posix()
+            try:
+                sz = p.stat().st_size
+            except OSError:
+                sz = 0
+            lines.append(f"    {rel}\t{human_size(sz)}")
+    else:
+        lines.append("  (폴더 없음 — `…/갑호증/법령정보/` 에 두면 본 점검·포털 precedent 에 포함)")
     lines.append("")
 
     lines.append("[전체 파일 목록 - 상대경로, 크기]")

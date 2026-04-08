@@ -45,8 +45,17 @@ Railway 배포 (commission-portal)
 원문 MD 편집(로컬만)
 --------------------
   - 탭별 MD 편집: `/serve/` 정본이 없으면 `public/source/` 폴백으로 불러옴. .md 파일명으로 내려받기, 저장 시 정본 경로 덮어쓰기.
-  - 저장 API: POST /api/save-md (허용: `행정심판청구(최종)/작업보조/개요_README_…`, `별지_갑호증_…`, `…/260405/260405_01_…`, 별지 제1~3호 등). **부모 폴더 자동 생성**. 동일 내용을 **`행정심판청구(최종)/260405_*.md` 직하에도 기록**(날짜 폴더 정본 + 루트 병행). 읽기만 `행정심판최종본/` 거울 대체 가능.
-  - 갑호증·법령정보 `/serve/`: **`행정심판청구(증거)/pdf_2_pdf/`** 에 조판 PDF가 있으면 **원본 경로 요청 시에도** 그 파일을 우선 반환(`start.js`).
-  - 판례 본문 링크(2008두167 등): `python tools/build_commission_evidence_json.py` 로 `portal-data.json` 의 `precedentFiles` 갱신. 사건번호는 **파일명(rel 리프)·label 둘 다**에서 잡히도록 되어 있음 — 조판 PDF는 `pdf_2_pdf/법령정보/` 에 두는 것을 표준으로.
+  - 저장 API: POST /api/save-md (허용: `행정심판청구(최종)/작업보조/개요_README_…`, `별지_갑호증_…`, `…/260405(인천행심위)/260405_01_…`, 별지 제1~3호 등). **부모 폴더 자동 생성**. 동일 내용을 **`행정심판청구(최종)/260405_*.md` 직하에도 기록**(날짜 폴더 정본 + 루트 병행). 읽기만 `행정심판최종본/` 거울 대체 가능.
+  - 갑호증·법령정보 `/serve/`: **`…/갑호증 및 법령정보/…`**·**`…/갑호증/…`**·**`…/법령정보/…`**·**`…/갑호증/법령정보/…`** 실제 파일을 화이트리스트로 연다(`start.js`). 통합·구 경로는 서버가 교차 해석한다. 구 `pdf_2_pdf` 트리는 사용하지 않음.
+  - 판례 링크: `python tools/build_commission_evidence_json.py` 로 `precedentFiles` 갱신. **`갑호증 및 법령정보/법령정보/`**·**`갑호증/법령정보/`** 가 있으면 우선, 없으면 **`법령정보/`** 등 레거시 경로를 스캔.
   - COMMISSION_REPO_ROOT가 USB 등 **정본 트리가 없는 경로**를 가리키면 예전에는 /serve/·저장이 전부 꺼졌음 → start.js가 monorepo 기본 루트(`web/commission-portal/../../`)로 **자동 대체**(콘솔에 안내). USB만 쓸 때는 그 경로에 `행정심판청구(최종)` 등을 두거나 변수를 비울 것.
   - 배포(Railway 등)에서는 정적 호스팅만 할 경우 저장 API가 없으므로 편집·저장은 로컬에서만 사용.
+
+좌측 본문 HTML 그대로 PDF (로컬)
+---------------------------------
+  - 브라우저: 해당 탭에서 Ctrl+P → PDF 저장(인쇄 미디어 CSS 그대로). MD 원문 textarea·에디터를 인쇄하면 `**`·`---` 가 그대로 나옵니다.
+  - CLI: npm install 후(최초 1회, devDependency playwright), npm start 를 다른 터미널에서 띄운 뒤
+      npm run pdf:tab -- --tab appeal -o ../../temp/portal-appeal.pdf
+    물리 프린터·「PDF로 저장」대화상자:  node scripts/portal-tab-pdf.js --tab appeal --print
+  - `portal-tab-pdf.js` 는 MD 렌더 완료(networkidle + h1 에 `**` 없음)까지 기다린 뒤 PDF/인쇄합니다.
+  - Edge가 없는 환경에서는 Playwright Chromium 이 필요할 수 있음: npx playwright install chromium

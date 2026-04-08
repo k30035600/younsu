@@ -3,13 +3,8 @@
 /**
  * public/ 정적 서빙 + 저장소 내 화이트리스트 경로만 /serve/ 로 열람 (로컬·배포 공통)
  *
- * ⚠⚠ 갑호증·법령정보 — 조판본 강제 우선 (꼬리말·여백 반영본)
- * ----------------------------------------------------------------
- * `resolveRepoFile()` 는 요청 경로가 `행정심판청구(증거)/{최종/,}{갑호증|법령정보}/…` 이면
- * **먼저** `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/…` 에 대응하는 파일이 있는지 본다.
- * 있으면 URL 경로는 그대로 두고 **디스크에서는 조판 PDF(또는 mp4 등)** 만 연다.
- * 이 동작이 없으면 포털은 제출본 스캔·원본 JPG 에 머물러 꼬리말 없는 썸네일·열화된 열람이 된다.
- * 조판 생성: `python tools/evidence_pdf_official_footer.py` (저장소 루트 younsu).
+ * 갑·법령정보 실물은 저장소 루트 `갑호증및법령정보/`·`USB/갑호증및법령정보/` 만 `/serve/` 한다.
+ * 제출 서면 MD 등은 `행정심판청구(최종)/`·`행정심판최종본/` 유지.
  */
 const http = require("http");
 const fs = require("fs");
@@ -33,7 +28,11 @@ function repoHasTrackedLayoutAt(root) {
       fs.existsSync(path.join(root, "행정심판최종본")) ||
       fs.existsSync(path.join(root, "행정심판청구(증거)", "최종")) ||
       fs.existsSync(path.join(root, "행정심판청구(증거)")) ||
-      fs.existsSync(path.join(root, "행정심판청구(최종)"))
+      fs.existsSync(path.join(root, "행정심판청구(최종)")) ||
+      /** 행심위 USB 루트: `갑호증및법령정보`(통합 증거 미러)만 있는 경우 */
+      fs.existsSync(path.join(root, "갑호증및법령정보")) ||
+      /** 클론 내 `USB/갑호증및법령정보` 동기화본 */
+      fs.existsSync(path.join(root, "USB", "갑호증및법령정보"))
     );
   } catch {
     return false;
@@ -110,19 +109,8 @@ function isAllowedRepoRel(relPosix) {
     .normalize("NFC");
   if (norm.startsWith("행정심판청구(최종)/")) return true;
   if (norm.startsWith("행정심판최종본/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/최종/갑호증/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/최종/첨부/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/최종/법령정보/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/최종/(국가법령정보)판례모음/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/최종/작업/")) return true;
-  /** 구 트리: `…/증거/갑호증/` 등(최종 폴더 없이 둔 경우) */
-  if (norm.startsWith("행정심판청구(증거)/갑호증/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/첨부/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/법령정보/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/(국가법령정보)판례모음/")) return true;
-  if (norm.startsWith("행정심판청구(증거)/작업/")) return true;
-  /** 조판본 직접 URL(링크·북마크) — `resolveRepoFile`이 해당 파일을 그대로 연다 */
-  if (norm.startsWith("행정심판청구(증거)/pdf_2_pdf/")) return true;
+  if (norm.startsWith("갑호증및법령정보/")) return true;
+  if (norm.startsWith("USB/갑호증및법령정보/")) return true;
   return false;
 }
 
@@ -139,56 +127,32 @@ function isResolvedUnderRepoRoot(resolved, rootResolved) {
   return true;
 }
 
-/**
- * `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/…` — tools/evidence_pdf_official_footer.py 산출.
- * URL은 원본 rel을 유지하되, 조판 PDF가 있으면 그 파일을 연다.
- */
-function pdf2PdfAlternateNorm(relPosix) {
-  const n = relPosix.replace(/\\/g, "/").normalize("NFC");
-  const pairs = [
-    ["행정심판청구(증거)/최종/갑호증/", "행정심판청구(증거)/pdf_2_pdf/갑호증/"],
-    ["행정심판청구(증거)/갑호증/", "행정심판청구(증거)/pdf_2_pdf/갑호증/"],
-    ["행정심판청구(증거)/최종/법령정보/", "행정심판청구(증거)/pdf_2_pdf/법령정보/"],
-    ["행정심판청구(증거)/법령정보/", "행정심판청구(증거)/pdf_2_pdf/법령정보/"],
-  ];
-  for (const [from, to] of pairs) {
-    if (!n.startsWith(from)) continue;
-    const tail = n.slice(from.length);
-    if (!tail) return null;
-    const ext = path.posix.extname(tail).toLowerCase();
-    const video = [".mp4", ".webm", ".mov", ".avi"];
-    if (video.includes(ext)) {
-      return to + tail;
-    }
-    const rasterOrPdf = [
-      ".jpg",
-      ".jpeg",
-      ".jpe",
-      ".png",
-      ".gif",
-      ".webp",
-      ".pdf",
-    ];
-    if (rasterOrPdf.includes(ext)) {
-      const base = tail.slice(0, -ext.length);
-      return to + base + ".pdf";
-    }
-    return null;
+/** 로컬 `갑호증및법령정보/` ↔ `USB/갑호증및법령정보/` 동일 상대 경로 */
+function evidenceMediaAlternateRels(norm) {
+  const n = norm.normalize("NFC");
+  const out = [];
+  if (n.startsWith("갑호증및법령정보/")) {
+    const rest = n.slice("갑호증및법령정보/".length);
+    out.push("USB/갑호증및법령정보/" + rest);
   }
-  return null;
+  if (n.startsWith("USB/갑호증및법령정보/")) {
+    const rest = n.slice("USB/갑호증및법령정보/".length);
+    out.push("갑호증및법령정보/" + rest);
+  }
+  return out;
 }
 
-function tryPdf2PdfResolved(relPosix, repoRoot, rootResolved) {
-  const altNorm = pdf2PdfAlternateNorm(relPosix);
-  if (!altNorm) return null;
-  const parts = altNorm.split("/").filter(Boolean);
-  const full = path.resolve(path.join(repoRoot, ...parts));
-  if (!isResolvedUnderRepoRoot(full, rootResolved)) return null;
+function tryStatRepoFile(repoRoot, norm, rootResolved) {
+  if (!isAllowedRepoRel(norm)) return null;
+  const parts = norm.split("/").filter(Boolean);
+  const full = path.join(repoRoot, ...parts);
+  const resolved = path.resolve(full);
+  if (!isResolvedUnderRepoRoot(resolved, rootResolved)) return null;
   try {
-    const st = fs.statSync(full);
-    if (st.isFile()) return full;
+    const st = fs.statSync(resolved);
+    if (st.isFile()) return resolved;
   } catch {
-    /* 없음 */
+    return null;
   }
   return null;
 }
@@ -207,9 +171,6 @@ function resolveRepoFile(relPosix) {
   if (!isResolvedUnderRepoRoot(resolved, rootResolved)) {
     return null;
   }
-  /** 갑호증·법령정보: `/serve/` 요청 URL은 원본 경로를 유지하되, 디스크에서는 `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/…` 파일이 있으면 **항상 그 PDF(또는 mp4 등)를 먼저** 연다(포털 우측 패널·모달 공통). */
-  const pdf2Early = tryPdf2PdfResolved(norm, repoRoot, rootResolved);
-  if (pdf2Early) return pdf2Early;
   /** 1순위: 요청한 경로 그대로 */
   try {
     const st = fs.statSync(resolved);
@@ -217,20 +178,9 @@ function resolveRepoFile(relPosix) {
   } catch {
     /* 없거나 접근 불가 — 아래에서 대체 경로 시도 */
   }
-  /** 정본 `…/증거/최종/…` 에 파일이 없으면 구 `…/증거/…`(최종 없음) 경로 시도 */
-  if (norm.startsWith("행정심판청구(증거)/최종/")) {
-    const legacyNorm =
-      "행정심판청구(증거)/" + norm.slice("행정심판청구(증거)/최종/".length);
-    const legacyParts = legacyNorm.split("/").filter(Boolean);
-    const legacyResolved = path.resolve(path.join(repoRoot, ...legacyParts));
-    if (isResolvedUnderRepoRoot(legacyResolved, rootResolved)) {
-      try {
-        const st = fs.statSync(legacyResolved);
-        if (st.isFile()) return legacyResolved;
-      } catch {
-        /* 구 경로 없음 */
-      }
-    }
+  for (const altNorm of evidenceMediaAlternateRels(norm)) {
+    const hit = tryStatRepoFile(repoRoot, altNorm, rootResolved);
+    if (hit) return hit;
   }
   /** `행정심판최종본/…`에만 있고 `행정심판청구(최종)/…`에는 없는 클론 호환 */
   if (norm.startsWith("행정심판청구(최종)/")) {
@@ -250,7 +200,9 @@ function resolveRepoFile(relPosix) {
   /**
    * `…(최종)/YYMMDD/YYMMDD_파일.md` 가 없을 때 루트의 `파일.md`(날짜 접두 제거) 시도 — USB 번들·루트 복제본과 tabSources 정본 경로 병행.
    */
-  const flatFinal = norm.match(/^행정심판청구\(최종\)\/(\d{6})\/\1_(.+)$/);
+  const flatFinal = norm.match(
+    /^행정심판청구\(최종\)\/(\d{6})(?:\([^)]*\))?\/\1_(.+)$/
+  );
   if (flatFinal) {
     for (const base of ["행정심판청구(최종)", "행정심판최종본"]) {
       const flatNorm = `${base}/${flatFinal[2]}`;
@@ -266,32 +218,13 @@ function resolveRepoFile(relPosix) {
       }
     }
   }
-  /**
-   * 조판 `pdf_2_pdf/법령정보/` 가 클론에 없을 때(미생성·미동기) 동일 파일명의 제출본을 연다.
-   * 포털 `precedentFiles`·인용 링크는 조판 경로를 쓰므로, 여기 없으면 열람이 전부 실패하던 문제를 막는다.
-   */
-  if (norm.startsWith("행정심판청구(증거)/pdf_2_pdf/법령정보/")) {
-    const tail = norm.slice("행정심판청구(증거)/pdf_2_pdf/법령정보/".length);
-    if (tail) {
-      for (const prefix of [
-        "행정심판청구(증거)/최종/법령정보/",
-        "행정심판청구(증거)/법령정보/",
-      ]) {
-        const altNorm = prefix + tail;
-        if (!isAllowedRepoRel(altNorm)) continue;
-        const altParts = altNorm.split("/").filter(Boolean);
-        const altResolved = path.resolve(path.join(repoRoot, ...altParts));
-        if (!isResolvedUnderRepoRoot(altResolved, rootResolved)) continue;
-        try {
-          const st = fs.statSync(altResolved);
-          if (st.isFile()) return altResolved;
-        } catch {
-          /* 없음 */
-        }
-      }
-    }
+  /** 모든 대체 경로를 시도해도 디스크에 없으면 null — sendFile 의 404 에 맡김 */
+  try {
+    fs.statSync(resolved);
+    return resolved;
+  } catch {
+    return null;
   }
-  return resolved;
 }
 
 /** 저장 전용: `resolveRepoFile` 과 달리 대체 경로로 바꾸지 않음(정본은 항상 `행정심판청구(최종)/`). */
@@ -314,11 +247,17 @@ function resolveRepoFileExact(relPosix) {
 const WRITABLE_MD_REL = new Set([
   "행정심판청구(최종)/작업보조/개요_README_younsu_허브.md",
   "행정심판청구(최종)/작업보조/별지_갑호증_목록_드롭다운.md",
-  "행정심판청구(최종)/260405/260405_01_행정심판청구서.md",
-  "행정심판청구(최종)/260405/260405_02_집행정지신청서.md",
-  "행정심판청구(최종)/260405/260405_별지제1호_증거자료_목록.md",
-  "행정심판청구(최종)/260405/260405_별지제2호_주요인용판례_및_적용주석.md",
-  "행정심판청구(최종)/260405/260405_별지제3호_사실관계_시간축_정리표.md",
+  "행정심판청구(최종)/260405(인천행심위)/260405_01_행정심판청구서.md",
+  "행정심판청구(최종)/260405(인천행심위)/260405_02_집행정지신청서.md",
+  "행정심판청구(최종)/260405(인천행심위)/260405_별지제1호_증거자료_목록.md",
+  "행정심판청구(최종)/260405(인천행심위)/260405_별지제2호_주요인용판례_및_적용주석.md",
+  "행정심판청구(최종)/260405(인천행심위)/260405_별지제3호_사실관계_시간축_정리표.md",
+  "행정심판청구(최종)/260407/260407_01_행정심판청구서.md",
+  "행정심판청구(최종)/260407/260407_02_집행정지신청서.md",
+  "행정심판청구(최종)/260407/260407_별지제1호_증거자료_목록.md",
+  "행정심판청구(최종)/260407/260407_별지제2호_주요인용판례_및_적용주석.md",
+  "행정심판청구(최종)/260407/260407_별지제3호_사실관계_시간축_정리표.md",
+  "행정심판청구(최종)/260407/260407_별지제4호_법제사적_보충의견.md",
 ]);
 
 const MAX_SAVE_BODY = 12 * 1024 * 1024;
@@ -403,7 +342,10 @@ const server = http.createServer(async (req, res) => {
       const relNfc = rel.normalize("NFC");
       if (relNfc.startsWith("행정심판청구(최종)/")) {
         const segs = relNfc.split("/").filter(Boolean);
-        if (segs.length >= 3 && /^\d{6}$/.test(segs[1])) {
+        if (
+          segs.length >= 3 &&
+          (/^\d{6}$/.test(segs[1]) || /^\d{6}\([^)]*\)$/.test(segs[1]))
+        ) {
           const flatName = segs[segs.length - 1];
           if (flatName && flatName.endsWith(".md")) {
             mirrorRel = `행정심판청구(최종)/${flatName}`;
@@ -480,8 +422,9 @@ const server = http.createServer(async (req, res) => {
     rel = rel.replace(/\\/g, "/");
     const abs = resolveRepoFile(rel);
     if (!abs) {
-      res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
-      res.end("Forbidden");
+      process.stderr.write(`[serve 404] ${rel}\n`);
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not found");
       return;
     }
     sendFile(res, abs, req.method);
@@ -557,7 +500,7 @@ server.listen(port, "0.0.0.0", () => {
   process.stdout.write(`repo root: ${repoRoot}\n`);
   if (!serveRepoFiles) {
     process.stdout.write(
-      "repo file serve (/serve/) disabled — no 행정심판청구(최종) or 행정심판청구(증거)/최종/ at repo root.\n" +
+      "repo file serve (/serve/) disabled — no 행정심판청구(최종)·행정심판청구(증거)·행정심판최종본 등 트리 at repo root.\n" +
         "  Fix: clone younsu 루트에서 npm start 하거나, COMMISSION_REPO_ROOT를 정본 폴더가 있는 경로로 맞추세요.\n"
     );
   }

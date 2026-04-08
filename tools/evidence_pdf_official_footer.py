@@ -3,7 +3,7 @@
 
 - 소스 루트: `행정심판청구(증거)/{갑호증|법령정보}` 및 동일 이름의 **`최종/`** 하위(`…/최종/갑호증` 등). 동일 상대경로는 `최종/` 쪽을 우선.
 - 대상: `.jpg` `.jpeg` `.png` `.pdf` `.mp4`(대소문자 무시). 그 외 확장자는 제외.
-- 출력: `행정심판청구(증거)/pdf_2_pdf/{갑호증|법령정보}/…` 에 원본과 동일한 상대 경로. 조판 시 확장자 `.mp4`·원본복사 목록은 **원본 확장자 유지**, 그 외 이미지·PDF는 `.pdf`.
+- 출력(기본): `행정심판청구(증거)/official_pdf_out/{갑호증|법령정보}/…` 에 원본과 동일한 상대 경로(`--out` 으로 변경 가능). 조판 시 `.mp4`·원본복사 목록은 **원본 확장자 유지**, 그 외 이미지·PDF는 `.pdf`.
 - 꼬리말(각 쪽): **좌** 작성일시 · **가운데** 원본 파일명 · **우** `현재쪽/총쪽`
 - 여백(mm): 상 28 · 하 20(본문) + 꼬리말 10 · 좌 28 · 우 26(조판본만).
 - **방향:** 이미지는 픽셀 가로·세로 비교, PDF는 **각 원본 쪽**의 가로·세로 비교 → 가로형이면 **A4 가로**, 세로형이면 **A4 세로**(정사각형은 세로).
@@ -17,6 +17,7 @@
   python tools/evidence_pdf_official_footer.py
   python tools/evidence_pdf_official_footer.py --dry-run
   python tools/evidence_pdf_official_footer.py --limit 3
+  python tools/evidence_pdf_official_footer.py --only-under 갑제14호증
 """
 from __future__ import annotations
 
@@ -31,7 +32,7 @@ import fitz  # PyMuPDF
 
 _REPO = Path(__file__).resolve().parent.parent
 _EVIDENCE = _REPO / "행정심판청구(증거)"
-_DEFAULT_OUT = _EVIDENCE / "pdf_2_pdf"
+_DEFAULT_OUT = _EVIDENCE / "official_pdf_out"
 _SOURCE_NAMES = ("갑호증", "법령정보")
 
 
@@ -39,6 +40,7 @@ def _source_roots() -> list[Path]:
     """스캔할 갑호증·법령정보 루트. `최종/` 아래가 실제 제출본인 경우가 많아 함께 스캔한다.
 
     동일 (폴더명, 상대경로)가 두 루트에 있으면 리스트에서 **뒤**에 온 루트(보통 `최종/…`)가 우선한다.
+    `갑호증/법령정보/` 는 `갑호증` 루트 `rglob` 에 포함되므로 별도 루트를 두지 않는다.
     """
     roots: list[Path] = []
     for name in _SOURCE_NAMES:
@@ -56,7 +58,7 @@ _MM_RIGHT = 26.0
 _IMG_EXT = {".jpg", ".jpeg", ".png", ".jpe", ".jfif"}
 _PDF_EXT = {".pdf"}
 
-# pdf_2_pdf 로는 원본 바이트만 복사(재조판·꼬리말 없음). 파일명 기준(확장자 포함).
+# 조판 생략 시 원본 바이트만 복사(재조판·꼬리말 없음). 파일명 기준(확장자 포함).
 _COPY_ORIGINAL_BASENAMES = frozenset(
     {
         "행정기본법_질의응답_사례집(최종).pdf",
@@ -266,6 +268,7 @@ def _build_pages_from_src(
             pw, ph = _a4_page_size_pt(landscape=landscape)
             new_page = out.new_page(width=pw, height=ph)
             cr = _content_rect(new_page.rect, ml, mr, mt, mb_body, fh)
+            # clip 은 **소스 페이지** 좌표계 — 목적지 cr 을 넘기면 원본이 잘못 잘림
             new_page.show_pdf_page(cr, src_doc, pno, keep_proportion=True)
             footer_right = f"{pno + 1} / {total}"
             _draw_footer(
@@ -327,6 +330,24 @@ def _iter_source_files(roots: list[Path]) -> list[tuple[Path, Path, str]]:
     return [seen[k] for k in keys]
 
 
+def _filter_pairs_only_under(
+    pairs: list[tuple[Path, Path, str]],
+    only_under: str | None,
+) -> list[tuple[Path, Path, str]]:
+    """`갑호증`·`법령정보` 루트 기준 상대 경로가 `only_under` 폴더 아래인 항목만."""
+    if not only_under:
+        return pairs
+    norm = only_under.replace("\\", "/").strip().strip("/")
+    if not norm:
+        return pairs
+    out: list[tuple[Path, Path, str]] = []
+    for src_file, source_root, label in pairs:
+        rel = src_file.relative_to(source_root).as_posix()
+        if rel == norm or rel.startswith(norm + "/"):
+            out.append((src_file, source_root, label))
+    return out
+
+
 def _out_path(
     out_root: Path,
     source_root: Path,
@@ -350,6 +371,7 @@ def run(
     limit: int | None,
     written_at: str | None,
     force_portrait: bool,
+    only_under: str | None = None,
 ) -> int:
     roots = _source_roots()
     fontpath = str(p) if (p := _korean_font_path()) else None
@@ -357,7 +379,7 @@ def run(
         print("경고: 한글 글꼴(malgun 등)을 찾지 못해 helv로 꼬리말을 넣습니다.", file=sys.stderr)
 
     ts = written_at or datetime.now().strftime("%Y.%m.%d %H:%M")
-    pairs = _iter_source_files(roots)
+    pairs = _filter_pairs_only_under(_iter_source_files(roots), only_under)
     if limit is not None:
         pairs = pairs[:limit]
 
@@ -431,6 +453,12 @@ def main() -> int:
         action="store_true",
         help="이미지·PDF 모두 A4 세로만 사용(이전 동작에 가깝게)",
     )
+    ap.add_argument(
+        "--only-under",
+        default=None,
+        metavar="상대경로",
+        help="갑호증·법령정보 루트 기준 하위만 처리 (예: 갑제14호증 또는 갑제14호증/하위)",
+    )
     args = ap.parse_args()
     out_root = args.out
     if not out_root.is_absolute():
@@ -442,6 +470,7 @@ def main() -> int:
         limit=args.limit,
         written_at=args.written_at,
         force_portrait=args.force_portrait,
+        only_under=args.only_under,
     )
 
 
