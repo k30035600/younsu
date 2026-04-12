@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-ROOT = _REPO / "행정심판청구(증거)"
+ROOT = _REPO / "행정심판청구(제출용)"
 
 # 첨부_NN_갑제…호증_ 또는 첨부(갑제…호증)_ 직후의 6자리 hex. 날짜·시간 6숫자는 제외 로직 참고.
 PAT_LEGACY = re.compile(r"(첨부_\d+_갑제(?:\d+-)?\d+호증)_([0-9a-fA-F]{6})(_)")
@@ -84,7 +84,7 @@ def main() -> None:
         if not args.dry_run:
             p.rename(p.parent / nn)
 
-    out = _REPO / "행정심판청구(증거)" / "최종" / "260401_파일명_해시제거_기록.txt"
+    out = _REPO / "행정심판청구(제출용)" / "최종" / "260401_파일명_해시제거_기록.txt"
     text = "\n".join(log_lines) + "\n"
     print(text)
     if ops and not args.dry_run:

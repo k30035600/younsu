@@ -3,7 +3,7 @@
 
 - 기존 `QR_갑제7-1호증_…png` 등과 **동일 URL**을 쓰며, PDF 안에도 스캔할 수 있게 합니다.
 - 최초 실행 시에만 원본을 `*.pdf.bak` 으로 복사한 뒤 같은 파일명으로 덮어씁니다.
-- URL 변경: `행정심판청구(증거)/최종/갑호증/gab_qr_urls.txt` (`항공=` / `위법=`)
+- URL 변경: `행정심판청구(제출용)/최종/갑호증/gab_qr_urls.txt` (`항공=` / `위법=`)
 
 의존성: `pip install "qrcode[pil]"` · PyMuPDF (`pip install pymupdf`)
 
@@ -22,7 +22,7 @@ from pathlib import Path
 import fitz  # PyMuPDF
 
 _REPO = Path(__file__).resolve().parent.parent
-GAB = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+GAB = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
 CONFIG = GAB / "gab_qr_urls.txt"
 
 DEFAULT_URLS = {

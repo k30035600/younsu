@@ -9,13 +9,13 @@
  *
  * 준비:
  *   cd web/commission-portal && npm install
- *   다른 터미널에서 npm start (기본 http://127.0.0.1:3000)
+ *   다른 터미널에서 npm start (기본 http://127.0.0.1:8282)
  *
  * 사용:
  *   node scripts/portal-tab-pdf.js --tab appeal -o ../../temp/행정심판_포털.pdf
  *   node scripts/portal-tab-pdf.js --tab appeal --print
  *     → Edge 창이 뜬 뒤 인쇄 대화상자(물리 프린터·Microsoft Print to PDF)
- *   node scripts/portal-tab-pdf.js --base http://127.0.0.1:3000 --tab gab1 -o gab1.pdf
+ *   node scripts/portal-tab-pdf.js --base http://127.0.0.1:8282 --tab gab1 -o gab1.pdf
  */
 
 const fs = require("fs");
@@ -26,7 +26,7 @@ const VALID_TABS = new Set(["appeal", "injunction", "gab1", "gab2", "gab3"]);
 
 function parseArgs() {
   const a = process.argv.slice(2);
-  let base = "http://127.0.0.1:3000";
+  let base = "http://127.0.0.1:8282";
   let tab = "appeal";
   let out = null;
   let printDialog = false;
@@ -53,7 +53,7 @@ function parseArgs() {
   TAB: ${[...VALID_TABS].join(", ")}
   -o FILE.pdf   헤드리스로 PDF 저장(렌더 완료까지 대기)
   --print       Edge 창 + 인쇄 대화상자(화면과 같은 HTML·인쇄 CSS)
-  기본 URL: http://127.0.0.1:3000  (먼저 npm start)`);
+  기본 URL: http://127.0.0.1:8282  (먼저 npm start)`);
       process.exit(0);
     }
   }

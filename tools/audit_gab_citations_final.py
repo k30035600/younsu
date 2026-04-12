@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""260407 최종 제출 MD 6건 ↔ 갑호증 및 법령정보 양방향 인용 대조 검수.
+"""`제출원문(원본)` 폴더의 제출 MD 6건 ↔ 갑호증및법령정보 양방향 인용 대조 검수.
 
 실행(프로젝트 루트):
   python tools/audit_gab_citations_final.py
-  python tools/audit_gab_citations_final.py --out "행정심판청구(증거)/260407_갑호증_인용대조_검수결과.txt"
+  python tools/audit_gab_citations_final.py --out "행정심판청구(제출용)/260409_갑호증_인용대조_검수결과.txt"
 """
 from __future__ import annotations
 
@@ -12,10 +12,12 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from wonmun_paths import latest_yymmdd_md_dir
+
 _REPO = Path(__file__).resolve().parent.parent
 
-_EVIDENCE_ROOT = _REPO / "행정심판청구(증거)" / "갑호증 및 법령정보"
-_MD_DIR = _REPO / "행정심판청구(최종)" / "260407"
+_EVIDENCE_ROOT = _REPO / "행정심판청구(제출용)" / "갑호증및법령정보"
+_MD_DIR = latest_yymmdd_md_dir(_REPO)
 
 # ── 갑호증 인용 패턴 ──────────────────────────────────────────
 # [갑 제N-M호증](#anchor) / [갑제 N-M호증] / 갑 제N-M호증 / 갑제N-M호증
@@ -128,7 +130,7 @@ def run_audit(out_path: Path | None = None) -> str:
     w = lines.append
 
     w("=" * 72)
-    w("갑호증 및 법령정보 인용 대조 검수 결과")
+    w("갑호증및법령정보 인용 대조 검수 결과")
     w(f"검수 대상 MD: {_MD_DIR}")
     w(f"증거 폴더:    {_EVIDENCE_ROOT}")
     w("=" * 72)

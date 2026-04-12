@@ -6,7 +6,7 @@
 
 기본 경로(저장소 루트 기준):
   첨부: 돌심방자료/행정심판청구서_첨부
-  증거: 행정심판청구(증거)/갑호증 및 법령정보
+  증거: 행정심판청구(제출용)/갑호증및법령정보
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
 _DEFAULT_ATTACH = _REPO / "돌심방자료" / "행정심판청구서_첨부"
-_DEFAULT_EVID = _REPO / "행정심판청구(증거)" / "갑호증 및 법령정보"
+_DEFAULT_EVID = _REPO / "행정심판청구(제출용)" / "갑호증및법령정보"
 _SKIP = {"Thumbs.db", "desktop.ini", ".DS_Store"}
 _EXT = {".pdf", ".jpg", ".jpeg", ".jpe", ".png", ".gif", ".webp", ".tif", ".tiff", ".mp4", ".docx"}
 

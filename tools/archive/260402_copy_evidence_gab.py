@@ -13,7 +13,7 @@ import shutil
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[2]
-BASE = _REPO / "행정심판청구(증거)"
+BASE = _REPO / "행정심판청구(제출용)"
 SRC_PHOTOS = _REPO / "돌심방자료"
 DEST = BASE / "갑호증"
 LOG: list[str] = []

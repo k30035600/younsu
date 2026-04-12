@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""260407 제출용 서면 묶음 생성. `행정심판청구(최종)/260406/` 정본을 복사·갱신해 `260407/`에 둔다.
+"""260407 제출용 서면 묶음 생성. `행정심판청구(원본)/260406/` 정본을 복사·갱신해 `260407/`에 둔다.
 
-출력 파일명은 포털 `tabSources`(날짜 접두)와 맞춤:
-  260407_01_행정심판청구서.md, 260407_02_집행정지신청서.md, 260407_별지제N호_….md
+출력 파일명은 포털 `tabSources`와 맞춤:
+  (레거시) 260407_01_… 등. 현재 정본 MD는 `행정심판청구(원본)/제출원문(원본)/` 또는 `yymmdd_md/` 아래(예: `행정심판청구서.md`).
 
 실행(프로젝트 루트):
   python tools/build_260407_submission_mds.py
@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-FINAL = _REPO / "행정심판청구(최종)"
+FINAL = _REPO / "행정심판청구(원본)"
 SRC = FINAL / "260406"
 OUT = FINAL / "260407"
 NEW = "260407"
@@ -30,10 +30,10 @@ _COPIES: list[tuple[str, str]] = [
 
 def _transform(text: str) -> str:
     """경로·저장 위치만 260407로 옮김. 본문의 `260406(중앙행심위)` 등 이력 문구는 유지."""
-    text = text.replace("행정심판청구(최종)/260406", "행정심판청구(최종)/260407")
+    text = text.replace("행정심판청구(원본)/260406", "행정심판청구(원본)/260407")
     text = text.replace(
-        f"행정심판청구(최종)/{NEW}/별지제1호_증거자료_목록.md",
-        f"행정심판청구(최종)/{NEW}/{NEW}_별지제1호_증거자료_목록.md",
+        f"행정심판청구(원본)/{NEW}/별지제1호_증거자료_목록.md",
+        f"행정심판청구(원본)/{NEW}/{NEW}_별지제1호_증거자료_목록.md",
     )
     return text
 

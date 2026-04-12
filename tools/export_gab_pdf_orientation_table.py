@@ -21,7 +21,7 @@ except ImportError:
     sys.exit("pip install pymupdf")
 
 REPO = Path(__file__).resolve().parents[1]
-GAB_ROOT = REPO / "행정심판청구(증거)" / "갑호증및법령정보"
+GAB_ROOT = REPO / "행정심판청구(제출용)" / "갑호증및법령정보"
 OVERRIDES = REPO / "web/commission-portal/public/data/gab-pdf-display-overrides.json"
 OUT_MD = REPO / "tools" / "gab_pdf_orientation_table.md"
 

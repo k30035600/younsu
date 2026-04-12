@@ -9,7 +9,7 @@
   python tools/audit_gab_evidence_filenames.py
 
 산출:
-  행정심판청구(증거)/최종/260401_갑호증_파일명전수조사.txt
+  행정심판청구(제출용)/최종/260401_갑호증_파일명전수조사.txt
 """
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ from collections import defaultdict
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-GAB = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
-OUT = _REPO / "행정심판청구(증거)" / "최종" / "260401_갑호증_파일명전수조사.txt"
+GAB = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
+OUT = _REPO / "행정심판청구(제출용)" / "최종" / "260401_갑호증_파일명전수조사.txt"
 
 PAT_ATTACH_PAREN = re.compile(
     r"^첨부\(갑제(\d+(?:-\d+)?)호증\)_(\d{2,3})_(.+)$",

@@ -4,7 +4,7 @@
 - **주 파일명**: `갑제7-1호증_항공사진_QR.png`, `갑제8-1호증_위법행정_QR.png`(청구서·감사 스크립트 기준).
 - **보조본**: `QR_갑제7-1호증_항공사진.png`, `QR_갑제8-1호증_위법행정.png`(동일 링크).
 - 기본 URL은 현재 `갑호증`에 있는 PNG를 OpenCV 등으로 읽었을 때와 동일한 유튜브 링크입니다.
-- URL을 바꾸려면 `행정심판청구(증거)/최종/갑호증/gab_qr_urls.txt`를 만들고 아래 형식으로 두 줄을 적습니다(선택).
+- URL을 바꾸려면 `행정심판청구(제출용)/최종/갑호증/gab_qr_urls.txt`를 만들고 아래 형식으로 두 줄을 적습니다(선택).
 
     항공=https://youtu.be/...
     위법=https://youtu.be/...
@@ -19,7 +19,7 @@ import re
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-GAB = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+GAB = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
 CONFIG = GAB / "gab_qr_urls.txt"
 
 DEFAULT = {

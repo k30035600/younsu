@@ -4,5 +4,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY package.json start.js ./
 COPY public ./public
-EXPOSE 3000
+ENV PORT=8282
+ENV COMMISSION_LISTEN_HOST=0.0.0.0
+EXPOSE 8282
 CMD ["node", "start.js"]

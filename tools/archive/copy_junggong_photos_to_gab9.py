@@ -10,7 +10,7 @@
 - 복사 대상: 파일명이 **`20260313_`** 로 시작하는 `.jpg` 만(준공식 당일).
 - 이미 같은 원본 파일명(예: `_20260313_125206.jpg`, `_260313_124719.jpg`)으로 끝나는 항목이 **`갑호증` 트리 어딘가의 파일명 접미**로 있으면 건너뜀(갑10 폴더 내 **갑 제9-1호증~갑 제9-7호증** 등 중복 복사 방지).
 - 복사 후 **촬영일시** 순으로 `첨부(갑제9호증)_01_`~ 전체 재번호(갑 제9-1~10-7 표준명 `갑제10-…` 제외).
-- 대상 폴더: `행정심판청구(증거)/최종/갑호증/갑제9호증_객관적공법외관(준공식)/`
+- 대상 폴더: `행정심판청구(제출용)/최종/갑호증/갑제9호증_객관적공법외관(준공식)/`
 - 저장 파일명: `첨부(갑제9호증)_NN_260313준공식_YYMMDD_HHMMSS.jpg` (해시 없음, 날짜 6자리). 구명 `첨부_NN_갑제9호증_…`·`갑제9호증_첨부_NN_…` 도 재번호 시 인식.
 
 실행(과거 일회성): 프로젝트 루트에서 `python tools/archive/copy_junggong_photos_to_gab9.py`
@@ -28,7 +28,7 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parents[2]
 SRC_PARENT = _REPO / "선거법위반"
 SRC_PREFIX = "260313_"
-GAB_ROOT = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+GAB_ROOT = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
 GAB9_PREP = GAB_ROOT / "갑제9호증_객관적공법외관(준공식)"
 
 
@@ -274,7 +274,7 @@ def main() -> None:
 
     _resequence_by_shoot_date(GAB9_PREP, dry_run=args.dry_run, log=log)
 
-    log_path = _REPO / "행정심판청구(증거)" / "최종" / "260328_준공식사진_갑9복사_기록.txt"
+    log_path = _REPO / "행정심판청구(제출용)" / "최종" / "260328_준공식사진_갑9복사_기록.txt"
     log_path.write_text("\n".join(log) + "\n", encoding="utf-8")
     print("\n".join(log))
     print(f"\n기록: {log_path}")

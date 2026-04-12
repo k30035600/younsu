@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>갑호증 링크 전수조사 보고서</title>
+<style>
+  body { font-family: 'Pretendard','Noto Sans KR',sans-serif; margin:2rem; color:#1e293b; }
+  h1 { font-size:1.5rem; border-bottom:2px solid #334155; padding-bottom:.4rem; }
+  h2 { font-size:1.15rem; margin-top:2rem; color:#0f172a; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:.85rem; font-weight:600; }
+  .err { background:#fee2e2; color:#991b1b; }
+  .warn { background:#fef3c7; color:#92400e; }
+  .info { background:#dbeafe; color:#1e40af; }
+  .ok  { background:#d1fae5; color:#065f46; }
+  table { border-collapse:collapse; width:100%; margin-top:.5rem; font-size:.9rem; }
+  th,td { border:1px solid #cbd5e1; padding:6px 8px; text-align:left; vertical-align:top; }
+  th { background:#f1f5f9; font-weight:600; position:sticky; top:0; }
+  tr:nth-child(even) { background:#f8fafc; }
+  code { background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:.85em; }
+  .summary { display:flex; gap:1.5rem; margin:1rem 0; }
+  .summary div { padding:.5rem 1rem; border-radius:6px; }
+  .ts { color:#64748b; font-size:.85rem; margin-top:2rem; }
+</style>
+</head>
+<body>
+<h1>갑호증 링크 전수조사 보고서</h1>
+<div class="summary">
+  <div class="ok">(A) 잘못된 링크: <b>0</b></div>
+  <div class="warn">(B) 링크 누락: <b>2</b></div>
+  <div class="ok">(C) 미인용 증거: <b>0</b></div>
+  <div class="ok">(D) 디스크 파일 부재: <b>0</b></div>
+</div>
+
+<h2><span class="badge err">A</span> 잘못된 링크 — portal-data.json에서 해소 불가</h2>
+<p>MD에 <code>[갑 제N호증](#target)</code> 형태의 링크가 있으나, <code>#target</code>이 portal-data.json evidence에 매핑되지 않거나 링크 텍스트의 번호와 target이 불일치하는 경우.</p>
+<p style="color:#065f46;font-weight:600">해당 없음 ✔</p>
+<table  style="display:none">
+<tr><th>파일</th><th>줄</th><th>링크 target</th><th>갑호증 번호</th><th>문맥</th><th>사유</th></tr>
+</table>
+
+<h2><span class="badge warn">B</span> 링크 누락 — 갑호증 텍스트만 있고 링크 없음</h2>
+<p>MD 본문에 <code>갑 제N호증</code> 텍스트가 있으나 <code>[…](#…)</code> 마크다운 링크가 아닌 경우. 의도적 비링크는 무시 가능.</p>
+
+<table>
+<tr><th>파일</th><th>줄</th><th>번호</th><th>문맥</th></tr>
+<tr>
+  <td>별지_갑1호증.md</td><td>290</td>
+  <td>13-1</td>
+  <td>증](#13-1)(갑제13-1호증 행정기본법 질의응답 사례집</td>
+</tr>
+<tr>
+  <td>별지_갑1호증.md</td><td>292</td>
+  <td>13-2</td>
+  <td>증](#13-2)(갑제13-2호증 행정기본법 질의응답 사례집</td>
+</tr>
+</table>
+
+<h2><span class="badge info">C</span> 미인용 증거 — portal-data.json에 있으나 MD에서 인용하지 않음</h2>
+<p>portal-data.json evidence 항목 중 어느 MD 소스에서도 <code>#N</code> 링크로 인용하지 않는 항목. 번들(gabBundlePrimaryKey)은 부번으로 인용될 수 있으므로 참고 수준.</p>
+<p style="color:#065f46;font-weight:600">해당 없음 ✔</p>
+<table  style="display:none">
+<tr><th>num</th><th>gab</th></tr>
+</table>
+
+<h2><span class="badge err">D</span> 디스크 파일 부재 — gabFileRange.rels 경로가 디스크에 없음</h2>
+<p>portal-data.json의 <code>gabFileRange.rels</code>에 기재된 파일이 <code>행정심판청구(제출용)/</code> 하위에 존재하지 않는 경우.</p>
+<p style="color:#065f46;font-weight:600">해당 없음 ✔</p>
+<table  style="display:none">
+<tr><th>num</th><th>gab</th><th>rel 경로</th></tr>
+</table>
+
+<p class="ts">생성: audit_md_gab_links.py</p>
+</body>
+</html>

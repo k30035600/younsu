@@ -12,7 +12,7 @@
   python tools/highlight_gab_citations_in_pdfs.py --dry-run
   python tools/highlight_gab_citations_in_pdfs.py --apply --backup
 
-기본 갑호증 루트: `행정심판청구(증거)/최종/갑호증` (없으면 `행정심판청구(증거)/갑호증`).
+기본 갑호증 루트: `행정심판청구(제출용)/최종/갑호증` (없으면 `행정심판청구(제출용)/갑호증`).
 """
 from __future__ import annotations
 
@@ -53,13 +53,13 @@ def _resolve_gab_root(explicit: Path | None) -> Path:
     if explicit is not None:
         return explicit.resolve()
     for rel in (
-        "행정심판청구(증거)/최종/갑호증",
-        "행정심판청구(증거)/갑호증",
+        "행정심판청구(제출용)/최종/갑호증",
+        "행정심판청구(제출용)/갑호증",
     ):
         p = _REPO / rel
         if p.is_dir():
             return p.resolve()
-    return (_REPO / "행정심판청구(증거)/최종/갑호증").resolve()
+    return (_REPO / "행정심판청구(제출용)/최종/갑호증").resolve()
 
 
 def _collect_quotes_from_line(line: str, min_len: int) -> list[str]:
@@ -240,13 +240,13 @@ def main() -> int:
     ap.add_argument(
         "--md01",
         type=Path,
-        default=_REPO / "행정심판청구(최종)" / "260405(인천행심위)" / "260405_01_행정심판청구서.md",
+        default=_REPO / "행정심판청구(원본)" / "260405(인천행심위)" / "260405_01_행정심판청구서.md",
         help="청구서 MD",
     )
     ap.add_argument(
         "--md02",
         type=Path,
-        default=_REPO / "행정심판청구(최종)" / "260405(인천행심위)" / "260405_02_집행정지신청서.md",
+        default=_REPO / "행정심판청구(원본)" / "260405(인천행심위)" / "260405_02_집행정지신청서.md",
         help="집행정지 신청서 MD",
     )
     ap.add_argument("--gab-root", type=Path, default=None, help="갑호증 루트(기본: 자동 탐지)")

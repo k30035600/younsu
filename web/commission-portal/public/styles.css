@@ -30,6 +30,13 @@
   --fs-section: 1.125rem;
   /* 원문(서면 본문·미주·참조 MD): 글자 크기 — 1rem = 브라우저 기본(보통 16px) */
   --fs-body: 1rem;
+  /* 본문·헤더·탭·푸터 공통 — 좁은 화면에서 .main 과 동일하게 gutter + 패딩 */
+  --page-gutter-inline: 0rem;
+  --page-pad-inline-start: max(0.65rem, env(safe-area-inset-left, 0px));
+  --page-pad-inline-end: max(0.65rem, env(safe-area-inset-right, 0px));
+  /* 헤더·탭·푸터 — 기본은 본문(.main)과 동일 패딩; 데스크톱 2열에서는 .split-main / aside 외곽에 맞춤 */
+  --chrome-pad-inline-start: var(--page-pad-inline-start);
+  --chrome-pad-inline-end: var(--page-pad-inline-end);
   --fs-small: 0.9375rem;
   --fs-caption: 0.875rem;
   --fs-foot: 0.8125rem;
@@ -38,6 +45,8 @@
   --lh-tight: 1.55;
   /* 본문·오른쪽 패널 사이(.split-shell gap) */
   --layout-split-gap: 30px;
+  /* 상단 고정 탭(nav.tabs) 대략 높이 — 본문 안 search-bar--sticky 가 같은 top:0 에 붙어 겹치며 출렁이지 않도록 */
+  --portal-sticky-tabs-estimate: 3.35rem;
   /* PDF·이미지 전체화면 모달 #viewer-body 좌우 */
   --viewer-modal-pad-x: 50px;
 }
@@ -114,18 +123,17 @@ textarea,
 }
 
 .site-header {
-  background: var(--surface);
-  border-bottom: 3px double var(--border-doc);
-  padding: 1.5rem 1.75rem 1.35rem;
-  font-family: var(--font-ui);
+  display: none;
 }
 
 .site-header .inner {
+  box-sizing: border-box;
   max-width: none;
-  width: 100%;
-  margin: 0 auto;
-  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  width: calc(100% - 2 * var(--page-gutter-inline));
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--chrome-pad-inline-start);
+  padding-right: var(--chrome-pad-inline-end);
 }
 
 .site-header-row {
@@ -137,8 +145,21 @@ textarea,
 }
 
 .site-header-brand {
-  flex: 1 1 14rem;
+  flex: 1 1 auto;
   min-width: 0;
+}
+
+.site-header-trailing {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  align-self: flex-start;
+  text-align: right;
+  text-justify: auto;
+  gap: 0.35rem;
+  max-width: min(100%, 26rem);
 }
 
 .site-header h1 {
@@ -148,6 +169,8 @@ textarea,
   line-height: var(--lh-tight);
   color: var(--accent);
   letter-spacing: 0.04em;
+  text-align: start;
+  text-justify: auto;
 }
 
 .subtitle {
@@ -159,13 +182,24 @@ textarea,
   line-height: 1.55;
 }
 
+.site-header-trailing .subtitle {
+  margin: 0;
+  text-align: right;
+  text-justify: auto;
+}
+
 .header-meta {
-  margin: 0.5rem 0 0;
+  margin: 0;
   font-size: var(--fs-foot);
   font-family: var(--font-ui);
   font-weight: 600;
   color: var(--accent);
   letter-spacing: 0.02em;
+}
+
+.site-header-trailing .header-meta {
+  text-align: right;
+  text-justify: auto;
 }
 
 .section-heading {
@@ -201,10 +235,14 @@ textarea,
 
 .tab-panel {
   margin-bottom: 1.15rem;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .tab-panel .md-body {
   font-family: var(--font-doc);
+  flex: 1 1 auto;
 }
 
 .tab-panel--compact .md-body {
@@ -311,7 +349,7 @@ textarea,
   flex-direction: column;
   width: 100%;
   min-height: 0;
-  background: #525659;
+  background: #f1f5f9;
   border-radius: 2px;
   overflow: hidden;
 }
@@ -339,6 +377,7 @@ textarea,
 
 .pdf-viewer-wrap--modal {
   min-height: 70vh;
+  background: #525659;
 }
 
 .pdf-viewer-wrap--modal .pdf-viewer-scroll {
@@ -399,6 +438,16 @@ textarea,
   color: var(--muted);
   min-width: 3.25rem;
   text-align: center;
+}
+
+.pdf-viewer-toolbar .pdf-viewer-rotate-btn {
+  font-size: 1.1rem;
+}
+
+.pdf-viewer-toolbar .pdf-viewer-rotate-btn--first {
+  margin-left: 0.35rem;
+  padding-left: 0.55rem;
+  border-left: 1px solid var(--border-doc);
 }
 
 .pdf-viewer-scroll {
@@ -585,6 +634,7 @@ textarea,
   line-height: 1.45;
   word-break: break-all;
   width: 100%;
+  white-space: pre-wrap;
 }
 
 .md-editor-toolbar-actions {
@@ -682,6 +732,13 @@ textarea,
   text-decoration: none;
   border-bottom: none;
 }
+.md-editor-preview-mount .md-content .doc-gongmun a.cite-ref,
+.md-editor-preview-mount .md-content .doc-gab3-time a.cite-ref {
+  color: var(--cite) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
 
 .md-editor-preview-mount .md-content .doc-gab3-time table {
   border-collapse: collapse;
@@ -756,11 +813,24 @@ textarea,
   color: #fff;
 }
 
+.md-editor-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.md-editor-save:disabled:hover {
+  background: #1e40af;
+  border-color: #1d4ed8;
+  color: #fff;
+}
+
 .md-editor-status {
   margin: 0.5rem 0 0;
   font-size: var(--fs-caption);
   min-height: 1.25em;
   flex-shrink: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* MD 편집 — 중간 화면: 가로 유지, 비율만 조정 */
@@ -861,16 +931,22 @@ textarea,
 }
 
 .tabs {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.65rem max(0.75rem, env(safe-area-inset-left, 0px)) 0.65rem
-    max(0.75rem, env(safe-area-inset-right, 0px));
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  padding: max(0.25rem, env(safe-area-inset-top, 0px)) var(--chrome-pad-inline-end) 0.25rem
+    var(--chrome-pad-inline-start);
   background: #dce1e8;
   border-bottom: 1px solid var(--border-doc);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
   max-width: none;
-  margin: 0;
-  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  width: calc(100% - 2 * var(--page-gutter-inline));
   font-family: var(--font-ui);
   flex-shrink: 0;
 }
@@ -904,6 +980,26 @@ textarea,
   margin-left: auto;
 }
 
+.tabs-trailing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem 1rem;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.tabs-tools-wrap--manual {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
+.tabs-tools-wrap--end {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
 .tabs-tools {
   display: flex;
   flex-wrap: wrap;
@@ -911,6 +1007,91 @@ textarea,
   align-items: center;
   flex: 0 1 auto;
   min-width: 0;
+}
+
+.tab--manual {
+  font-size: 0.92em;
+  border-style: dashed;
+  opacity: 0.95;
+}
+
+.tab-panel--manual {
+  padding-top: 0.25rem;
+}
+
+/* 사용설명서: 마크다운은 연속 빈 줄을 하나로 합쳐 화면에 "빈 3줄"이 나오지 않음 → 제목 아래를 본문 글자 기준 약 3줄 분 여백으로 맞춤 */
+.md-content.doc-manual > h1:first-child {
+  margin-top: 0;
+  margin-bottom: calc(3 * var(--fs-body) * var(--lh-doc));
+}
+
+/* 소제목(##)·목록: 일반 .md-content h2 보다 여유 있는 줄간·단락 간격 */
+.md-content.doc-manual h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 1.15rem;
+  line-height: 1.55;
+}
+
+.md-content.doc-manual > h2:first-of-type {
+  margin-top: 1.85rem;
+}
+
+.md-content.doc-manual p {
+  line-height: var(--lh-doc);
+  margin: 0 0 1rem;
+}
+
+.md-content.doc-manual ul {
+  margin: 0 0 0.5rem;
+  padding-left: 1.35rem;
+  line-height: var(--lh-doc);
+}
+
+.md-content.doc-manual li + li {
+  margin-top: 0.75rem;
+}
+
+.md-content.doc-manual li {
+  padding-left: 0.15rem;
+}
+
+.tab-tool--save {
+  background: #1e40af;
+  color: #ffffff;
+  border-color: #1d4ed8;
+  margin-right: 0.5rem;
+}
+
+.tab-tool--save:hover {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+}
+
+.tab-tool--save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tab-tool--save:disabled:hover {
+  background: #1e40af;
+  border-color: #1d4ed8;
+}
+
+.tab-tool--md-mode.is-pressed,
+.tab-tool--md-mode[aria-pressed="true"] {
+  background: var(--surface-elevated, #e2e8f0);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.tab-tool--exit {
+  border-color: rgba(120, 40, 40, 0.45);
+  color: #6b2a2a;
+}
+
+.tab-tool--exit:hover,
+.tab-tool--exit:focus-visible {
+  border-color: rgba(120, 40, 40, 0.75);
+  background: rgba(120, 40, 40, 0.06);
 }
 
 .tab-tool {
@@ -933,6 +1114,53 @@ textarea,
 }
 
 .tab-tool:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.tab-filter-wrap.dual-filters {
+  display: flex;
+  gap: 1.25rem;
+  margin-left: auto;
+  align-items: center;
+  padding-right: 1.5rem;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.tab-filter-wrap {
+  display: flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--border);
+}
+
+.tab-select {
+  padding: 0.35rem 0.5rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+  outline: none;
+}
+
+.tab-select:hover {
+  border-color: var(--accent);
+  background: #f1f5f9;
+}
+
+.tab-select:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -968,18 +1196,25 @@ textarea,
 }
 
 .main {
+  box-sizing: border-box;
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: calc(100vh - 220px);
+  min-height: calc(100dvh - 220px);
   max-width: none;
-  width: 100%;
-  margin: 0;
-  padding: 0.5rem max(0.65rem, env(safe-area-inset-left, 0px)) 0.65rem
-    max(0.65rem, env(safe-area-inset-right, 0px));
+  width: calc(100% - 2 * var(--page-gutter-inline));
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding: 0.5rem var(--page-pad-inline-end) 2.5rem var(--page-pad-inline-start);
   background: var(--surface);
-  border: 1px solid var(--border-doc);
+  border: 0;
   border-radius: 0;
   box-shadow: none;
   font-family: var(--font-ui);
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
 }
 
 .split-shell {
@@ -997,6 +1232,12 @@ textarea,
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /** 좌열은 문서 스크롤 사용 — 우열 `contain` 과 대칭으로 경계 전파만 정리 */
+  overscroll-behavior-y: auto;
+}
+
+.split-shell-gutter {
+  display: none;
 }
 
 .cite-preview-aside {
@@ -1005,6 +1246,7 @@ textarea,
   min-width: 0;
   flex: 1 1 auto;
   min-height: 0;
+  overscroll-behavior-y: contain;
 }
 
 .cite-preview-panel {
@@ -1022,6 +1264,7 @@ textarea,
 
 /* 안내 박스·미리보기 본문을 한 컨테이너에서 세로 스크롤(안내가 본문과 함께 이동) */
 .cite-preview-scroll {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   overflow-x: hidden;
@@ -1030,6 +1273,9 @@ textarea,
   flex-direction: column;
   gap: 0.75rem;
   font-family: var(--font-ui);
+  /** 내부 끝에서 휠이 패널 바깥(문서)으로 넘어가지 않게 — 좌측은 기본 문서 스크롤만 */
+  overscroll-behavior-y: contain;
+  overscroll-behavior-x: none;
 }
 
 .cite-preview-intro {
@@ -1045,6 +1291,11 @@ textarea,
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.site-header,
+.cite-preview-header {
+  display: none;
 }
 
 .cite-preview-title,
@@ -1083,10 +1334,12 @@ textarea,
 }
 
 .cite-preview-mount {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   min-height: 4rem;
   overflow-x: hidden;
   overflow-y: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 .cite-preview-mount:has(.pdf-viewer-wrap--fit-width),
@@ -1100,6 +1353,19 @@ textarea,
 
 .cite-preview-mount .detail-gab3-item {
   min-width: 0;
+}
+
+.cite-preview-mount .detail-gab3-item--cite-focus > .detail-gab3-img,
+.cite-preview-mount .detail-gab3-item--cite-focus > .detail-gab3-video-wrap,
+.cite-preview-mount .detail-gab3-item--cite-focus > .detail-gab3-pdf-mount {
+  outline: 3px solid var(--link, #1d4ed8);
+  outline-offset: 3px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 7px rgba(37, 99, 235, 0.18), 0 2px 14px rgba(37, 99, 235, 0.25);
+}
+
+.cite-preview-mount .detail-gab3-item--cite-focus > .detail-gab3-pdf-mount .pdf-viewer-wrap {
+  background: #525659;
 }
 
 /* 인라인 PDF: 페이지는 .cite-preview-scroll 에서 함께 스크롤 */
@@ -1146,6 +1412,22 @@ textarea,
 .cite-preview-video-wrap {
   border-radius: 6px;
   overflow: hidden;
+  background: #000;
+}
+
+/* YouTube 썸네일(오른쪽 패널) */
+/* YouTube 썸네일: 동영상 그리드와 동일한 구조 사용 */
+.detail-gab3-yt-thumb {
+  pointer-events: none;
+  object-fit: cover;
+}
+
+/* YouTube iframe — viewer-video-modal-scroll 내부 */
+.viewer-yt-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 50vh;
+  border: none;
   background: #000;
 }
 
@@ -1261,53 +1543,114 @@ body.cite-preview-expanded
 }
 
 @media (min-width: 64rem) {
+  :root {
+    /* .split-main 좌 50px · .cite-preview-aside 우 50px 과 같은 눈금으로 헤더·탭·푸터 정렬 */
+    --chrome-pad-inline-start: max(50px, env(safe-area-inset-left, 0px));
+    --chrome-pad-inline-end: max(50px, env(safe-area-inset-right, 0px));
+  }
+
   /* 좌열: 좌 50px · 우 25px, 우열: 좌 25px · 우 50px (가운데 gap과 맞물림) */
   .main {
-    padding-top: 0.5rem;
-    padding-bottom: 0.65rem;
+    padding-top: 0.35rem;
+    padding-bottom: 2.5rem;
     padding-left: max(0px, env(safe-area-inset-left, 0px));
     padding-right: max(0px, env(safe-area-inset-right, 0px));
+    border: 0;
+    box-shadow: none;
   }
 
   /*
-   * 데스크톱 레이아웃: 스크롤은 브라우저(body·document) 기본 스크롤에 맡김.
-   * main·split-shell 에 overflow 를 두면 sticky 의 스크롤 컨테이너가 바뀌어 동작이 꼬이므로 전부 visible.
-   * aside 에 position:sticky 를 주면 body 스크롤 기준으로 뷰포트 상단에 붙는다.
+   * 데스크톱 2-패널 레이아웃: body 스크롤을 잠그고
+   * 왼쪽(.split-main)·오른쪽(.cite-preview-aside) 각각 독립 스크롤바.
+   * position:sticky 없이 양쪽 패널이 뷰포트 높이를 채운다.
    */
+  body {
+    height: 100dvh;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  body > main.main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .split-shell {
     flex-direction: row;
-    align-items: flex-start;
-    gap: var(--layout-split-gap);
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* 본문 열과 참고 패널 사이 간격 가운데 세로 실선 */
+  .split-shell-gutter {
+    display: flex;
+    flex: 0 0 var(--layout-split-gap);
+    min-width: var(--layout-split-gap);
+    max-width: var(--layout-split-gap);
+    justify-content: center;
+    align-items: stretch;
+    align-self: stretch;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  .split-shell-gutter-line {
+    display: block;
+    width: 1px;
+    flex: 0 0 1px;
+    align-self: stretch;
+    background: var(--border-doc);
   }
 
   .split-main {
-    flex: 1 1 56%;
+    flex: 1 1 60%;
     min-width: 0;
-    padding: 0 25px 0 50px;
+    min-height: 0;
+    padding: 0 40px 0 50px;
     box-sizing: border-box;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
   }
 
   .cite-preview-aside {
     flex: 1 1 40%;
-    max-width: 44%;
+    max-width: 40%;
     min-width: 0;
-    align-self: flex-start;
-    padding: 0 50px 0 25px;
+    min-height: 0;
+    align-self: stretch;
+    position: static;
+    max-height: none;
+    padding: 0 50px 0 40px;
     box-sizing: border-box;
-    position: sticky;
-    top: 0.5rem;
-    z-index: 1;
-    max-height: calc(100dvh - 1rem);
-    max-height: calc(100vh - 1rem);
     display: flex;
     flex-direction: column;
+    border: 0;
+    box-shadow: none;
   }
 
+  /** 패널 자체는 스크롤하지 않음 — `.cite-preview-scroll` 만 스크롤(이중 스크롤·끝에서 문서로 휠 전파 완화) */
   .cite-preview-panel {
     overflow: hidden;
-    flex: 1 1 auto;
-    min-height: 0;
-    max-height: 100%;
+    max-height: none;
+    background: var(--surface);
+    border: 0;
+    border-radius: 0;
+    padding: 1.5rem 1.5rem;
+    box-shadow: none;
+    font-family: var(--font-doc);
+    line-height: var(--lh-doc);
+    color: var(--text-body);
+    text-align: justify;
+    border-left: 0;
+  }
+
+  .cite-preview-panel .md-content {
+    font-size: var(--fs-body);
+    color: var(--text-body);
   }
 
   .cite-preview-scroll {
@@ -1319,16 +1662,7 @@ body.cite-preview-expanded
   }
 
   body.cite-preview-expanded .cite-preview-aside {
-    position: static;
-    max-height: calc(100vh - 0.75rem);
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    align-self: stretch;
-  }
-
-  body.cite-preview-expanded .split-shell {
-    align-items: stretch;
+    max-height: none;
   }
 
   body.cite-preview-expanded .cite-preview-panel {
@@ -1338,6 +1672,79 @@ body.cite-preview-expanded
     height: 100%;
     overflow: hidden;
   }
+}
+
+/* MD수정: 테두리 박스 없이 본문처럼 아래로 쭉 이어짐(높이는 JS로 scrollHeight 맞춤) */
+.md-aside-editor {
+  display: block;
+  width: 100%;
+  flex: 0 0 auto;
+  min-height: 3.5rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+  padding: 0.25rem 0;
+  box-sizing: border-box;
+  font-family: ui-monospace, "Cascadia Code", "Nanum Gothic Coding", monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1e293b;
+  resize: none;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  outline: none;
+}
+
+.md-aside-editor:focus {
+  box-shadow: none;
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.cite-preview-mount:has(.md-aside-editor) {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* MD 원문도 `.cite-preview-scroll` 한 곳에서만 스크롤(패널 이중 스크롤 방지) */
+body.cite-preview-expanded .cite-preview-panel:has(.md-aside-editor) {
+  overflow: hidden;
+}
+
+.md-aside-save-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  padding-bottom: 1.5rem;
+}
+
+.md-aside-status {
+  font-size: var(--fs-caption);
+  color: var(--muted);
+}
+
+.md-aside-status.is-ok {
+  color: #166534;
+  font-weight: 600;
+}
+
+.md-aside-status.is-err {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.btn--primary:hover {
+  background: var(--accent-hover);
 }
 
 .sr-only {
@@ -1350,6 +1757,12 @@ body.cite-preview-expanded
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.section {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .section h2 {
@@ -1439,8 +1852,10 @@ body.cite-preview-expanded
 @media (min-width: 30rem) {
   .search-bar--sticky {
     position: sticky;
-    top: 0;
-    z-index: 2;
+    top: calc(
+      env(safe-area-inset-top, 0px) + var(--portal-sticky-tabs-estimate, 3.35rem)
+    );
+    z-index: 55;
     margin-top: -0.25rem;
     padding: 0.5rem 0;
     margin-bottom: 0.85rem;
@@ -1646,19 +2061,24 @@ body.cite-preview-expanded
 }
 
 .site-footer {
-  margin-top: auto;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border-doc);
-  background: var(--surface);
-  font-family: var(--font-ui);
-  font-size: var(--fs-foot);
-  line-height: 1.55;
-  color: var(--muted);
+  display: none;
 }
 
 .site-footer .inner {
-  max-width: min(96rem, calc(100% - 2rem));
-  margin: 0 auto;
+  box-sizing: border-box;
+  max-width: none;
+  width: calc(100% - 2 * var(--page-gutter-inline));
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--chrome-pad-inline-start);
+  padding-right: var(--chrome-pad-inline-end);
+}
+
+.site-footer-text {
+  margin: 0;
+  text-align: center;
+  text-justify: auto;
+  word-break: keep-all;
 }
 
 .footer-kicker {
@@ -1772,32 +2192,8 @@ body.cite-preview-expanded
   grid-template-columns: unset;
 }
 
-/** 법령정보(판례) PDF — 쪽별 썸네일 그리드 */
-.detail-gab3-grid--law-thumbs {
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: 0.65rem;
-}
-
-.detail-gab3-item--law-thumb figcaption {
-  margin-bottom: 0.35rem;
-}
-
-.law-precedent-thumb-canvas {
-  display: block;
-  width: 100%;
-  max-width: 120px;
-  height: auto;
-  margin: 0 auto;
-  cursor: pointer;
-  background: #fff;
-  border: 1px solid var(--border-doc);
-  border-radius: 4px;
-}
-
-.law-precedent-thumb-canvas:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
+/** 법령정보(판례) PDF — 갑호증 PDF와 동일 칸 크기 */
+/* 법령정보 전용 CSS 제거 — appendGabBundleGrid 통합 렌더링 사용 */
 
 .detail-files .detail-gab3-pdf-mount .pdf-viewer-wrap--inline .pdf-viewer-scroll {
   min-height: 22vh;
@@ -1908,6 +2304,16 @@ body.cite-preview-expanded .pdf-viewer-wrap--inline.pdf-viewer-wrap--thumb-lands
   max-height: 100%;
 }
 
+.detail-gab3-pdf-mount .pdf-thumb-prerendered {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  max-height: var(--detail-gab3-thumb-h, 420px);
+  object-fit: contain;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
 .detail-gab3-item figcaption {
   margin-bottom: 0.45rem;
   font-size: 0.82rem;
@@ -1924,6 +2330,10 @@ body.cite-preview-expanded .pdf-viewer-wrap--inline.pdf-viewer-wrap--thumb-lands
   font-size: 0.75rem;
   color: var(--muted);
   word-break: break-all;
+}
+
+.detail-gab3-abs-path {
+  display: none;
 }
 
 .detail-gab3-img {
@@ -1946,6 +2356,13 @@ body.cite-preview-expanded .pdf-viewer-wrap--inline.pdf-viewer-wrap--thumb-lands
   outline-offset: 2px;
 }
 
+.detail-gab3-video-wrap {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+}
+
 .detail-gab3-video {
   display: block;
   width: 100%;
@@ -1955,6 +2372,20 @@ body.cite-preview-expanded .pdf-viewer-wrap--inline.pdf-viewer-wrap--thumb-lands
   border-radius: 4px;
   background: #000;
   vertical-align: top;
+  pointer-events: none;
+}
+
+.detail-gab3-video-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0.8;
+}
+.detail-gab3-video-wrap:hover .detail-gab3-video-play-overlay {
+  opacity: 1;
 }
 
 .detail-files .btn {
@@ -2021,7 +2452,7 @@ body.modal-open {
 
 .viewer-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.65rem 1rem;
@@ -2030,16 +2461,34 @@ body.modal-open {
   font-family: var(--font-ui);
 }
 
+.viewer-toolbar-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
 .viewer-title {
   margin: 0;
   min-width: 0;
-  flex: 1;
   font-size: var(--fs-small);
   font-weight: 700;
   color: var(--accent);
   line-height: 1.45;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.viewer-path {
+  margin: 0;
+  font-size: var(--fs-caption);
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: ui-monospace, "Malgun Gothic", monospace;
 }
 
 .btn-close {
@@ -2418,8 +2867,12 @@ body.modal-open {
 }
 
 #section-gab3 .md-content .doc-gab3-time table td a.cite-ref,
-#section-gab3 .md-content .doc-gab3-time table th a.cite-ref {
-  color: var(--text-body);
+#section-gab3 .md-content .doc-gab3-time table th a.cite-ref,
+#section-gab3 .md-content .doc-gab3-time a.cite-ref,
+#section-gab4 .md-content .doc-gongmun a.cite-ref {
+  color: var(--cite) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
 }
 
@@ -2454,6 +2907,33 @@ body.modal-open {
   text-align: center;
   text-justify: auto;
   margin-top: 1.25rem;
+}
+
+/* 별지 제3호 부속 · 대조 목록: 표 행(th/td) 제외 본문 12px, 표는 본문 크기 유지 */
+#section-gab3 .md-content .doc-gab3-time .doc-gab3-appendix,
+.md-editor-preview-mount .md-content .doc-gab3-time .doc-gab3-appendix,
+.md-content .doc-gab3-time .doc-gab3-appendix {
+  font-size: 12px;
+}
+#section-gab3 .md-content .doc-gab3-time .doc-gab3-appendix h2,
+#section-gab3 .md-content .doc-gab3-time .doc-gab3-appendix h3,
+.md-editor-preview-mount .md-content .doc-gab3-time .doc-gab3-appendix h2,
+.md-editor-preview-mount .md-content .doc-gab3-time .doc-gab3-appendix h3,
+.md-content .doc-gab3-time .doc-gab3-appendix h2,
+.md-content .doc-gab3-time .doc-gab3-appendix h3 {
+  font-size: 12px;
+  font-weight: 700;
+}
+#section-gab3 .md-content .doc-gab3-time .doc-gab3-appendix table,
+#section-gab3 .md-content .doc-gab3-time .doc-gab3-appendix table th,
+#section-gab3 .md-content .doc-gab3-time .doc-gab3-appendix table td,
+.md-editor-preview-mount .md-content .doc-gab3-time .doc-gab3-appendix table,
+.md-editor-preview-mount .md-content .doc-gab3-time .doc-gab3-appendix table th,
+.md-editor-preview-mount .md-content .doc-gab3-time .doc-gab3-appendix table td,
+.md-content .doc-gab3-time .doc-gab3-appendix table,
+.md-content .doc-gab3-time .doc-gab3-appendix table th,
+.md-content .doc-gab3-time .doc-gab3-appendix table td {
+  font-size: var(--fs-body);
 }
 
 /* 부속 §2 항목별 정밀 대조표 — 인라인 &lt;style&gt; 미적용 환경에서도 테두리 유지 */
@@ -2516,6 +2996,16 @@ body.modal-open {
 
 .md-content a.cite-ref--external {
   color: var(--cite);
+}
+
+.md-content a.cite-ref--youtube {
+  color: #c00;
+  cursor: pointer;
+}
+.md-content a.cite-ref--youtube::after {
+  content: " ▶";
+  font-size: 0.75em;
+  opacity: 0.7;
 }
 
 #section-appeal .md-content a.cite-ref--external,
@@ -2586,22 +3076,73 @@ body.modal-open {
   max-height: none;
 }
 
-#viewer-modal .viewer-body:has(video.viewer-video) {
+#viewer-modal .viewer-body:has(.viewer-video-modal-wrap) {
   overflow: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: stretch;
   min-height: 0;
   background: #0f172a;
 }
 
-#viewer-modal .viewer-body:has(video.viewer-video) .viewer-video {
+.viewer-video-modal-wrap {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  width: 100%;
   min-height: 0;
-  max-height: 100%;
+  width: 100%;
+  background: #0f172a;
+}
+
+.viewer-video-modal-wrap .pdf-viewer-toolbar {
+  flex-shrink: 0;
+}
+
+#viewer-modal[data-viewer-content="video"] .viewer-video-modal-wrap .pdf-viewer-toolbar {
+  background: #1e293b;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.viewer-video-speed-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 1rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
+  padding-left: 0.75rem;
+}
+
+.viewer-video-speed-label {
+  display: inline-block;
+  min-width: 2.8em;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.viewer-video-speed-btn {
+  font-size: 0.75rem !important;
+  padding: 0.2rem 0.5rem !important;
+}
+
+.viewer-video-modal-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+#viewer-modal .viewer-body .viewer-video-modal-scroll .viewer-video {
+  max-width: 100%;
+  max-height: min(100%, 85vh);
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 0;
 }
@@ -2661,6 +3202,21 @@ body.modal-open {
   > .viewer-toolbar
   .viewer-title {
   color: #e2e8f0;
+}
+
+#viewer-modal[data-viewer-orientation="landscape"][data-viewer-content="image"]
+  .viewer-dialog
+  > .viewer-toolbar
+  .viewer-path,
+#viewer-modal[data-viewer-orientation="landscape"][data-viewer-content="pdf"]
+  .viewer-dialog
+  > .viewer-toolbar
+  .viewer-path,
+#viewer-modal[data-viewer-orientation="landscape"][data-viewer-content="video"]
+  .viewer-dialog
+  > .viewer-toolbar
+  .viewer-path {
+  color: #cbd5e1;
 }
 
 #viewer-modal[data-viewer-orientation="landscape"][data-viewer-content="image"]
@@ -2804,6 +3360,8 @@ body.modal-open {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+/* 다쪽 PDF는 세로로 캔버스가 쌓임. center 정렬은 오버플로 시 scrollTop=0에서도 위쪽 쪽이
+   잘리거나(특히 중간 쪽을 본 뒤) 맨 앞 쪽으로 스크롤이 닿지 않는 브라우저 동작을 유발할 수 있음. */
 #viewer-modal[data-viewer-orientation="landscape"][data-viewer-content="pdf"]
   .pdf-viewer-wrap--modal
   .pdf-viewer-scroll--pan {
@@ -2811,9 +3369,9 @@ body.modal-open {
   min-height: 0;
   flex-direction: column;
   flex-wrap: nowrap;
-  align-content: center;
+  align-content: flex-start;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   background: #0f172a;
 }
 
@@ -2822,6 +3380,64 @@ body.modal-open {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
+}
+
+@media print {
+  @page {
+    margin: 15mm 15mm 15mm 15mm;
+  }
+  
+  /* 브라우저 기본 헤더/푸터 여백 확보 및 제거 */
+  header, footer, .tabs, .tabs-main, .tab-filter-wrap, .tabs-trailing, .tab-tool, .md-aside-save-row, #doc-preview-heading, #doc-preview-lead {
+    display: none !important;
+  }
+
+  /* 인쇄 시 좌측 본문만 출력하거나, 사용자가 선택한 쪽만 나오게 조절 */
+  /* 여기선 우측 편집기 영역도 인쇄에서 제외 (보통 문서만 뽑으므로) */
+  .cite-preview-aside {
+    display: none !important;
+  }
+
+  .split-shell-gutter {
+    display: none !important;
+  }
+  
+  .split-main {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  /* 인쇄용 꼬리말 */
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 9pt;
+    color: #333;
+    font-family: var(--font-ui);
+    border-top: 1px solid #ccc;
+    padding-top: 2mm;
+    background: white;
+  }
+
+  .print-footer-left::before {
+    content: attr(data-filename);
+  }
+
+  .print-footer-right::after {
+    /* 표준 CSS counter는 PDF변환기 환경 외 일반 브라우저에서 제약이 있으나, 기본적인 페이징 시도 */
+    content: counter(page) " / " counter(pages);
+  }
+}
+
+/* 화면에서는 숨김 */
+.print-footer {
+  display: none;
 }
 
 #viewer-modal[data-viewer-orientation="square"] .image-viewer-scroll--pan {
@@ -3125,9 +3741,14 @@ body.modal-open {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --page-gutter-inline: 0.5rem;
+    --page-pad-inline-start: max(0.85rem, env(safe-area-inset-left, 0px));
+    --page-pad-inline-end: max(0.85rem, env(safe-area-inset-right, 0px));
+  }
+
   .site-header {
-    padding: max(1rem, env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-right, 0px))
-      1.1rem max(1rem, env(safe-area-inset-left, 0px));
+    padding: max(1rem, env(safe-area-inset-top, 0px)) 0 1.1rem;
   }
 
   .site-header .inner {
@@ -3137,8 +3758,8 @@ body.modal-open {
   .tabs {
     max-width: 100%;
     width: 100%;
-    padding: 0.55rem max(0.65rem, env(safe-area-inset-left, 0px)) 0.6rem
-      max(0.65rem, env(safe-area-inset-right, 0px));
+    padding: max(0.55rem, env(safe-area-inset-top, 0px)) var(--chrome-pad-inline-end) 0.6rem
+      var(--chrome-pad-inline-start);
   }
 
   .tabs-row {
@@ -3151,12 +3772,23 @@ body.modal-open {
     justify-content: flex-start;
   }
 
+  .tabs-tools-wrap--end {
+    align-self: flex-end;
+    margin-left: auto;
+    width: auto;
+  }
+
+  .tabs-trailing {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .main {
-    width: calc(100% - 1rem);
     max-width: 100%;
-    margin: 0.65rem auto 1.15rem;
-    padding: 1.25rem max(0.85rem, env(safe-area-inset-left, 0px)) 1.75rem
-      max(0.85rem, env(safe-area-inset-right, 0px));
+    margin-top: 0.65rem;
+    margin-bottom: 1.15rem;
+    padding: 1.25rem var(--page-pad-inline-end) 1.75rem var(--page-pad-inline-start);
   }
 
   .split-shell {

@@ -5,7 +5,7 @@
   python tools/audit_law_info_folder.py
 
 산출:
-  행정심판청구(증거)/YYMMDD_법령정보_전수점검.txt
+  행정심판청구(제출용)/YYMMDD_법령정보_전수점검.txt
 
 `build_commission_evidence_json.py`의 `LAW_INFO_*_RELS`·사건번호 규칙과 동일합니다.
 """
@@ -41,10 +41,10 @@ def _cases_to_rels(items: list[dict]) -> tuple[dict[str, list[str]], list[dict]]
 def main() -> None:
     out_path = (
         _REPO
-        / "행정심판청구(증거)"
+        / "행정심판청구(제출용)"
         / f"{date.today().strftime('%y%m%d')}_법령정보_전수점검.txt"
     )
-    evid = _REPO / "행정심판청구(증거)"
+    evid = _REPO / "행정심판청구(제출용)"
     if not evid.is_dir():
         print(f"없음: {evid}", file=sys.stderr)
         sys.exit(1)

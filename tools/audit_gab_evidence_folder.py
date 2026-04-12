@@ -19,7 +19,7 @@ from datetime import date
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-_EVID = _REPO / "행정심판청구(증거)"
+_EVID = _REPO / "행정심판청구(제출용)"
 GAB = _EVID / "갑호증"
 if not GAB.is_dir():
     GAB = _EVID / "최종" / "갑호증"
@@ -207,7 +207,7 @@ def main() -> None:
     )
 
     report = "\n".join(lines)
-    out = _REPO / "행정심판청구(증거)" / f"{date.today().strftime('%y%m%d')}_갑호증_청구서대조.txt"
+    out = _REPO / "행정심판청구(제출용)" / f"{date.today().strftime('%y%m%d')}_갑호증_청구서대조.txt"
     out.write_text(report, encoding="utf-8")
     print(report)
     print(f"\n기록: {out}")

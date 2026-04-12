@@ -5,7 +5,7 @@
   python tools/survey_haengjeong_sipan_full.py
 
 산출(기본):
-  행정심판청구(증거)/최종/작업/루트기록/YYMMDD_행정심판청구_전수조사.txt
+  행정심판청구(제출용)/최종/작업/루트기록/YYMMDD_행정심판청구_전수조사.txt
 
 갑호증 실물만 보는 경우는 `survey_gab_evidence_full.py` 를 사용한다.
 """
@@ -18,7 +18,7 @@ from datetime import date
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-ROOT = _REPO / "행정심판청구(증거)"
+ROOT = _REPO / "행정심판청구(제출용)"
 WORK_LOG = ROOT / "작업" / "루트기록"
 
 
@@ -78,7 +78,7 @@ def main() -> int:
     total_bytes = sum(s for _r, s in all_rows)
 
     lines: list[str] = []
-    lines.append("=== 행정심판청구(증거)/최종/ 전수조사 (재귀 전체 파일) ===")
+    lines.append("=== 행정심판청구(제출용)/최종/ 전수조사 (재귀 전체 파일) ===")
     lines.append(f"기준일: {d.isoformat()}")
     lines.append(f"기준 경로: {ROOT}")
     lines.append(f"총 파일 수: {total_files:,}")
@@ -96,7 +96,7 @@ def main() -> int:
             f"  {ext:14}  {ext_count[ext]:6,}건  {human_size(ext_bytes[ext]):>12}"
         )
     lines.append("")
-    lines.append("[전체 파일 목록 — 상대경로 (행정심판청구(증거)/최종/) 기준)]")
+    lines.append("[전체 파일 목록 — 상대경로 (행정심판청구(제출용)/최종/) 기준)]")
     for rel, size in all_rows:
         lines.append(f"  {human_size(size):>12}  {rel}")
     lines.append("")

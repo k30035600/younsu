@@ -10,12 +10,11 @@ from pathlib import Path
 
 # 스크립트는 younsu/tools/에 두고, 정리 대상은 행정심판청구 루트
 _REPO = Path(__file__).resolve().parents[2]
-ROOT = _REPO / "행정심판청구(증거)"
+ROOT = _REPO / "행정심판청구(제출용)"
 
 # 이미 용도별로 쓰는 폴더(여기 안의 항목은 건드리지 않음)
 SKIP_DIRS = frozenset(
     {
-        "행정심판최종본",
         "집행정지_보충",
         "판례모음",
         "(국가법령정보)판례모음",
@@ -38,7 +37,7 @@ def main() -> None:
         if p.is_dir():
             if p.name in SKIP_DIRS:
                 continue
-            # 알 수 없는 폴더는 유지 (예: 예전 260327_행정심판최종본)
+            # 알 수 없는 폴더는 유지 (예: 예전 날짜 접두 폴더)
             continue
         if p.name == "260402_organize_folders.py":
             continue

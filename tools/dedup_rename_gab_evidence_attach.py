@@ -20,7 +20,7 @@ from collections import defaultdict
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-GAB = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+GAB = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
 
 PAT_ATTACH_OLD = re.compile(
     r"^갑제(\d+)호증_첨부_(\d{2})_(.+)$",
@@ -226,7 +226,7 @@ def main() -> None:
     log.append(f"접두 교체(갑제N호증_첨부_ → 첨부_NN_갑제N호증_): {n_swap}건")
     _resequence_folders(args.dry_run, log)
 
-    out = _REPO / "행정심판청구(증거)" / "최종" / "260401_갑호증_중복제거_첨부이름변경_기록.txt"
+    out = _REPO / "행정심판청구(제출용)" / "최종" / "260401_갑호증_중복제거_첨부이름변경_기록.txt"
     text = "\n".join(log) + "\n"
     if not args.dry_run:
         out.write_text(text, encoding="utf-8")

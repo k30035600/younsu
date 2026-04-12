@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """판례별 사건번호·사건명·판시사항·판결요지·주문 PDF 생성 (국가법령정보센터 기준 재추출본).
 
-CASES 목록은 행정심판최종본 제출 서면(01·02·03) 및 03_핵심판례_집대성에 등장하는 사건번호와 일치함.
+CASES 목록은 `행정심판청구(원본)` 제출 서면(01·02·03) 및 03_핵심판례_집대성에 등장하는 사건번호와 일치함.
 - 적극 인용: 2008두167, 91누13441, 2004두2974, 99다70600, 93누20023, 96누18380, 98두4061, 96누12917, 97누7875, 95누9020 *(91누12529는 원문 확인 곤란·혼동 우려로 제외; 다목 핵심은 2004두2974·96누12917 등으로 정리. 2000두2741도 제외)*
 - 법리 정비·참고(본안에서 그대로 대응 인용 아님): 97누8540, **91누5358**(건축법 준공검사 — 다목 **보조**; PDF는 `법령정보/`)
 
-**출력 위치:** 국가법령정보센터 요약 PDF(판례 **재추출본**)는 **`행정심판청구(증거)/법령정보/`** 에 **`사건번호_사건명.pdf`** 로 둔다(구 트리: `…/증거/최종/법령정보/`). 갑호증 **제출 대상 아님**; 청구서는 사건번호·law.go.kr 원문 인용. **대조·검증을 마친 기존 파일은 삭제하거나 덮어쓰지 않도록** 재실행 시 `python tools/260402_build_prec_pdfs.py --skip-existing` 를 쓴다. **법제처 행정기본법** Q10·Q18은 **`갑제13호증/갑제13-1호증`·`갑제13-2호증`**(각 1페이지 PDF, `pypdf` 필요: `pip install pypdf`). *(구 출력명: `갑제16·17호증_…` 루트)* **전체 원본 PDF**는 `행정심판최종본/행정기본법_질의응답_사례집(최종).pdf` 에 두고, 과거에 판례모음 루트에 두던 `02_…(최종).pdf` 는 **`기타참고/`** 로 옮긴다. 구 `01_`~`11_` 판례모음 경로는 스크립트가 정리한다. 과거에 둔 `*_요약.pdf` 복제본은 스크립트 실행 시 제거한다. **`old/`** 하위는 스크립트가 읽거나 수정하지 않는다. 참고·중복·잡파일·97누8540·91누5358 등은 **`작업/기타참고/`** 등 작업 폴더에 둔다(스크립트 생성분은 **`사건번호_사건명.pdf`**). 구 `판례모음/기타`는 `merge_legacy_panrye_gita()`로 통합. 루트에 남은 중복은 `tidy_panrye_moum_root()`로 같은 `기타참고/`로 옮긴다.
+**출력 위치:** 국가법령정보센터 요약 PDF(판례 **재추출본**)는 **`행정심판청구(제출용)/법령정보/`** 에 **`사건번호_사건명.pdf`** 로 둔다(구 트리: `…/증거/최종/법령정보/`). 갑호증 **제출 대상 아님**; 청구서는 사건번호·law.go.kr 원문 인용. **대조·검증을 마친 기존 파일은 삭제하거나 덮어쓰지 않도록** 재실행 시 `python tools/260402_build_prec_pdfs.py --skip-existing` 를 쓴다. **법제처 행정기본법** Q10·Q18은 **`갑제13호증/갑제13-1호증`·`갑제13-2호증`**(각 1페이지 PDF, `pypdf` 필요: `pip install pypdf`). *(구 출력명: `갑제16·17호증_…` 루트)* **전체 원본 PDF**는 `행정심판청구(원본)/행정기본법_질의응답_사례집(최종).pdf` 에 두고, 과거에 판례모음 루트에 두던 `02_…(최종).pdf` 는 **`기타참고/`** 로 옮긴다. 구 `01_`~`11_` 판례모음 경로는 스크립트가 정리한다. 과거에 둔 `*_요약.pdf` 복제본은 스크립트 실행 시 제거한다. **`old/`** 하위는 스크립트가 읽거나 수정하지 않는다. 참고·중복·잡파일·97누8540·91누5358 등은 **`작업/기타참고/`** 등 작업 폴더에 둔다(스크립트 생성분은 **`사건번호_사건명.pdf`**). 구 `판례모음/기타`는 `merge_legacy_panrye_gita()`로 통합. 루트에 남은 중복은 `tidy_panrye_moum_root()`로 같은 `기타참고/`로 옮긴다.
 
-각 CASE에 선택 필드 `citations`: `[{"from": "01 …", "text": "…"}, …]` — PDF 말미에 `[인용 · 출처]` 형식으로 붙임. `행정심판최종본/` 문구 변경 시 여기도 맞출 것.
+각 CASE에 선택 필드 `citations`: `[{"from": "01 …", "text": "…"}, …]` — PDF 말미에 `[인용 · 출처]` 형식으로 붙임.
 """
 from __future__ import annotations
 
@@ -32,8 +32,9 @@ except ImportError:
     _PypdfWriter = None
 
 _REPO = Path(__file__).resolve().parent.parent
-ADJ_ROOT = _REPO / "행정심판청구(증거)"
-FINAL_ROOT = _REPO / "행정심판최종본"
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+ADJ_ROOT = _REPO / "행정심판청구(제출용)"
+FINAL_ROOT = _REPO_ROOT / "행정심판청구(원본)"
 PANRYE_ROOT = ADJ_ROOT / "판례모음"
 GAB_DIR = ADJ_ROOT / "갑호증"
 LAW_INFO_DIR = ADJ_ROOT / "법령정보"
@@ -57,11 +58,11 @@ def _ordered_pdf_filename(order: int, evt: str, case_name: str) -> str:
 
 
 def _law_info_case_path(evt: str, case_name: str) -> Path:
-    """`행정심판청구(증거)/법령정보/사건번호_사건명.pdf` — 갑호증 제출 대상 아님."""
+    """`행정심판청구(제출용)/법령정보/사건번호_사건명.pdf` — 갑호증 제출 대상 아님."""
     return LAW_INFO_DIR / _case_pdf_filename(evt, case_name)
 
 
-# 국가법령정보 재추출 판례 PDF는 `행정심판청구(증거)/법령정보/`(갑호증 제외). 법제처 Q10·Q18은 `갑제13호증/13-1·13-2`.
+# 국가법령정보 재추출 판례 PDF는 `행정심판청구(제출용)/법령정보/`(갑호증 제외). 법제처 Q10·Q18은 `갑제13호증/13-1·13-2`.
 CASE_OUT: dict[str, Path] = {
     "2008두167_건축신고불허또는반려처분취소.pdf": _law_info_case_path(
         "2008두167", "건축신고불허(또는반려)처분취소"
@@ -484,7 +485,7 @@ def flatten_daebub_worktree_in_misc() -> None:
 
 
 def merge_legacy_panrye_gita() -> None:
-    """예전 `판례모음/기타`에 있던 내용을 `행정심판청구(증거)/최종/기타참고`로 옮긴 뒤 빈 폴더를 제거한다."""
+    """예전 `판례모음/기타`에 있던 내용을 `행정심판청구(제출용)/최종/기타참고`로 옮긴 뒤 빈 폴더를 제거한다."""
     legacy = PANRYE_ROOT / "기타"
     if not legacy.is_dir():
         return
@@ -518,7 +519,7 @@ def merge_legacy_panrye_gita() -> None:
 
 
 def _resolve_admin_law_full_pdf() -> Path | None:
-    """행정기본법 사례집 전체 PDF 경로(행정심판최종본·인용순 02·판례모음 등)."""
+    """행정기본법 사례집 전체 PDF 경로(원본 루트·인용순 02·판례모음 등)."""
     candidates: list[Path] = [
         FINAL_ROOT / ADM_PDF_STEM,
         ORDERED_ADM_FULL,
@@ -618,7 +619,7 @@ def _build_admin_law_excerpt_and_relocate_full() -> None:
 
 
 def tidy_panrye_moum_root() -> None:
-    """판례모음 루트의 중복 PDF·zip·txt·작업 폴더 등을 `행정심판청구(증거)/최종/기타참고` 루트로 평탄화(인용순만 제외)."""
+    """판례모음 루트의 중복 PDF·zip·txt·작업 폴더 등을 `행정심판청구(제출용)/최종/기타참고` 루트로 평탄화(인용순만 제외)."""
     skip: frozenset[str] = frozenset()
     MISC_DIR.mkdir(parents=True, exist_ok=True)
     if not PANRYE_ROOT.is_dir():
@@ -717,7 +718,7 @@ def _remove_summary_alias_pdfs() -> None:
 
 
 def _purge_legacy_panrye_ordered_pdfs() -> None:
-    """과거 `(국가법령정보)판례모음`·`법령정보/`에 두던 `01_`~`11_` 인용순 PDF를 제거한다(주 출력은 `행정심판청구(증거)/최종/법령정보/` 사건번호 파일)."""
+    """과거 `(국가법령정보)판례모음`·`법령정보/`에 두던 `01_`~`11_` 인용순 PDF를 제거한다(주 출력은 `행정심판청구(제출용)/최종/법령정보/` 사건번호 파일)."""
     for d in (ORDERED_DIR, LAWINFO_ORIG_DIR):
         if not d.is_dir():
             continue

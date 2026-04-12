@@ -24,7 +24,7 @@ $sc = $ws.CreateShortcut($lnkPath)
 $sc.TargetPath = $runBat
 $sc.Arguments = ""
 $sc.WorkingDirectory = $portalRoot
-$sc.Description = "행정심판 commission-portal 로컬 서버 (http://127.0.0.1:3000)"
+$sc.Description = "행정심판 commission-portal 로컬 서버 (http://127.0.0.1:8282)"
 $sc.Save()
 
 Write-Host "등록됨: $lnkPath"

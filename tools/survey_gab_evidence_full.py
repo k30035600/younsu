@@ -5,7 +5,7 @@
   python tools/survey_gab_evidence_full.py
 
 산출:
-  행정심판청구(증거)/YYMMDD_갑호증_전수조사.txt (실행일 기준)
+  행정심판청구(제출용)/YYMMDD_갑호증_전수조사.txt (실행일 기준)
 
 기준 경로는 `audit_gab_evidence_folder.py`와 동일(`…/증거/최종/갑호증` 우선, 없으면 `…/증거/갑호증`).
 """
@@ -19,10 +19,10 @@ from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
 # `audit_gab_evidence_folder.py` 와 동일: `최종/갑호증` 우선, 없으면 `갑호증`
-_GAB_PRIMARY = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
-_GAB_FALLBACK = _REPO / "행정심판청구(증거)" / "갑호증"
+_GAB_PRIMARY = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
+_GAB_FALLBACK = _REPO / "행정심판청구(제출용)" / "갑호증"
 GAB = _GAB_PRIMARY if _GAB_PRIMARY.is_dir() else _GAB_FALLBACK
-OUT = _REPO / "행정심판청구(증거)" / f"{date.today().strftime('%y%m%d')}_갑호증_전수조사.txt"
+OUT = _REPO / "행정심판청구(제출용)" / f"{date.today().strftime('%y%m%d')}_갑호증_전수조사.txt"
 
 
 def human_size(n: int) -> str:

@@ -3,13 +3,13 @@
 청구서 정본 MD의 [증거자료 목록]을 읽어 commission-portal용 JSON을 생성합니다.
 
 증거 목록 서두·표기·핵심·보충·갑13 행 등 문면 정본은
-`행정심판청구(최종)/260405(인천행심위)/260405_별지제1호_증거자료_목록.md`에 맞추고,
+`행정심판청구(원본)/제출원문(원본)/별지제1호_증거자료_목록.md`(및 동일 트리 탭 정본)에 맞추고,
 opus·웹 MD·작업보조는 이 파일과 동일 문구로 수동 동기화할 것(다른 경로만 고치면 되살아남).
 
 실행(프로젝트 루트 younsu):
   python tools/build_commission_evidence_json.py
 
-⚠ 열람 정본: 갑·법령정보 실물은 저장소 루트 `갑호증및법령정보/`·`USB/갑호증및법령정보/` 만 스캔·`/serve/` 화이트리스트한다(제출 서면 MD는 `행정심판청구(최종)/`).
+⚠ 열람 정본: 갑·법령정보 실물은 `행정심판청구(제출용)/갑호증및법령정보/`·`USB/갑호증및법령정보/` 만 스캔·`/serve/` 에 연다(포털 rel 은 `갑호증및법령정보/`). 제출 서면 MD는 `행정심판청구(원본)/`.
 
 판례 PDF 인용(`2008두167` 등 → 우측 패널 링크·썸네일):
   - 위 두 루트 아래 `법령정보/*.pdf` 만 `meta.precedentFiles` 에 넣는다(동일 상대 경로는 `갑호증및법령정보/` 쪽을 우선).
@@ -31,15 +31,17 @@ import json
 import re
 from pathlib import Path
 
+from wonmun_paths import appeal_md_path
+
 # `260405` 또는 `260405(인천행심위)` 등 날짜+괄호 꼬리표 폴더
 _DATED_CASE_FOLDER = re.compile(r"^(\d{6})(\([^)]+\))?$")
 
 _REPO = Path(__file__).resolve().parent.parent
-_MD = _REPO / "행정심판청구(최종)" / "260407" / "260407_01_행정심판청구서.md"
 _OUT = _REPO / "web" / "commission-portal" / "public" / "data" / "portal-data.json"
 
-# 저장소 루트 기준 통합 편철(로컬·USB 미러) — `갑제N호증/`·`법령정보/`·선택 `첨부/`
+# 디스크 실물: `행정심판청구(제출용)/갑호증및법령정보/`. 포털·JSON `rel` 은 `갑호증및법령정보/`(및 USB 미러)로 통일.
 GAB_EVIDENCE_PRIMARY_REL = "갑호증및법령정보"
+GAB_EVIDENCE_PRIMARY_DISK_REL = "행정심판청구(제출용)/갑호증및법령정보"
 GAB_EVIDENCE_USB_REL = "USB/갑호증및법령정보"
 GAB_LAW_SUB_REL = "법령정보"
 GAB_ATTACH_SUB_REL = "첨부"
@@ -179,7 +181,11 @@ def collect_gab1_split_rels_from_disk() -> tuple[list[str], list[str]] | None:
             n = int(m.group(1))
             if 1 <= n <= GAB1_MAX_MINOR:
                 try:
-                    rel = p.relative_to(_REPO).as_posix()
+                    if root == _GAB_PRIMARY_ROOT:
+                        tail = p.relative_to(root).as_posix()
+                        rel = f"{GAB_EVIDENCE_PRIMARY_REL}/{tail}".replace("\\", "/")
+                    else:
+                        rel = p.relative_to(_REPO).as_posix()
                 except ValueError:
                     continue
                 hits.append((n, rel))
@@ -275,7 +281,7 @@ def merge_gab1_split_rows(
         detail = (
             "**갑 제1호증** 입증상 묶음(청구서 증거 목록).\n\n"
             + "\n".join(bullet_parts)
-            + "\n\n빌드 시 저장소 루트 `갑호증및법령정보/`(또는 `USB/갑호증및법령정보/`) 아래 "
+            + "\n\n빌드 시 `행정심판청구(제출용)/갑호증및법령정보/`(또는 `USB/갑호증및법령정보/`) 아래 "
             "`갑제1-n호증` 파일이 있으면 이 행이 파일 구간·그리드로 다시 병합됩니다."
         )
         summary = f"{summary_base} — 청구서 분할 {len(subs_sorted)}건"
@@ -473,18 +479,20 @@ GAB7_PAIR_LAST_REL = _gab_dir(
 GAB7_PAIR_RELS: list[str] = [GAB7_PAIR_FIRST_REL, GAB7_PAIR_LAST_REL]
 GAB7_PAIR_LABELS: list[str] = ["갑 제7-1호증", "갑 제7-2호증"]
 
-_GAB_PRIMARY_ROOT = _REPO / GAB_EVIDENCE_PRIMARY_REL
-_GAB_USB_ROOT = _REPO / GAB_EVIDENCE_USB_REL
+_GAB_PRIMARY_ROOT = _REPO.joinpath(*GAB_EVIDENCE_PRIMARY_DISK_REL.split("/"))
+_GAB_USB_ROOT = _REPO.joinpath(*GAB_EVIDENCE_USB_REL.split("/"))
 
 
 def _gab_rel_if_exists(folder: str, filename: str) -> str | None:
-    for base in (_GAB_PRIMARY_ROOT, _GAB_USB_ROOT):
-        p = base / folder / filename
-        if p.is_file():
-            try:
-                return p.relative_to(_REPO).as_posix()
-            except ValueError:
-                continue
+    p_primary = _GAB_PRIMARY_ROOT / folder / filename
+    if p_primary.is_file():
+        return _gab_dir(folder, filename)
+    p_usb = _GAB_USB_ROOT / folder / filename
+    if p_usb.is_file():
+        try:
+            return p_usb.relative_to(_REPO).as_posix()
+        except ValueError:
+            return None
     return None
 
 
@@ -1173,14 +1181,37 @@ def parse_evidence_block(text: str) -> list[dict]:
 
 
 def _prefix_from_submission_md(md_path: Path) -> str:
+    """레거시(평면·괄호 폴더)는 파일명의 첫 `_` 앞. `…/제출원문(원본)/행정심판청구서.md`·`…/NNNNNN_md/…` 는 폴더 규칙에 따름."""
+    parent = md_path.parent.name
+    m_md = re.fullmatch(r"(\d{6})_md", parent)
+    if m_md:
+        return m_md.group(1)
+    if re.match(r"^\d{6}$", parent):
+        return parent
     return md_path.name.split("_")[0]
+
+
+def _archive_date_prefix(md_path: Path, file_prefix: str) -> str:
+    """메타 `updated`용: 보관 폴더명이 `yyMMdd`·`yyMMdd_md`이면 그날짜를, 아니면 파일명 접두."""
+    parent = md_path.parent.name
+    m_md = re.fullmatch(r"(\d{6})_md", parent)
+    if m_md:
+        return m_md.group(1)
+    if re.match(r"^\d{6}$", parent):
+        return parent
+    return file_prefix
 
 
 def _parent_is_dated_case_folder(parent_name: str, prefix: str) -> bool:
     if parent_name == prefix:
         return True
+    m_md = re.fullmatch(r"(\d{6})_md", parent_name)
+    if m_md and m_md.group(1) == prefix:
+        return True
     m = _DATED_CASE_FOLDER.match(parent_name)
-    return bool(m and m.group(1) == prefix)
+    if m and m.group(1) == prefix:
+        return True
+    return bool(re.match(r"^\d{6}$", parent_name))
 
 
 def _iso_date_from_submission_prefix(prefix: str) -> str:
@@ -1209,7 +1240,7 @@ def _list_law_pdf_items_for_rels(dir_rels: tuple[str, ...]) -> list[dict]:
     seen_rel: set[str] = set()
     out: list[dict] = []
     for dir_rel in dir_rels:
-        root = _REPO / dir_rel
+        root = _REPO.joinpath(*dir_rel.split("/"))
         if not root.is_dir():
             continue
         for p in sorted(root.rglob("*")):
@@ -1243,10 +1274,23 @@ def _rel_tail_under_root(rel: str, root_prefix: str) -> str:
 
 
 def merge_viewable_dual_primary_usb(
-    primary_dir: str, usb_dir: str, *, sort_gab: bool = False
+    primary_dir: str,
+    usb_dir: str,
+    *,
+    sort_gab: bool = False,
+    rel_prefix_primary: str | None = None,
 ) -> list[dict]:
-    """동일 미(USB)러: 상대 경로(tail) 같으면 primary rel만 유지, USB는 보충."""
-    prim = list_viewable_under_repo_rel(primary_dir, sort_gab=False)
+    """동일 미(USB)러: 상대 경로(tail) 같으면 primary rel만 유지, USB는 보충.
+
+    primary_dir 은 디스크 상대경로(예: 행정심판청구(제출용)/갑호증및법령정보).
+    rel_prefix_primary 가 있으면 JSON `rel` 접두(예: 갑호증및법령정보).
+    """
+    prim_prefix = rel_prefix_primary or primary_dir
+    prim = list_viewable_under_repo_rel(
+        primary_dir,
+        sort_gab=False,
+        rel_prefix=prim_prefix,
+    )
     usb = list_viewable_under_repo_rel(usb_dir, sort_gab=False)
     seen: set[str] = set()
     out: list[dict] = []
@@ -1254,7 +1298,7 @@ def merge_viewable_dual_primary_usb(
         r = str(it.get("rel") or "")
         if not r:
             continue
-        k = _rel_tail_under_root(r, primary_dir)
+        k = _rel_tail_under_root(r, prim_prefix)
         if k in seen:
             continue
         seen.add(k)
@@ -1275,11 +1319,34 @@ def merge_viewable_dual_primary_usb(
     return out
 
 
+def _list_law_pdf_under_primary_law_root() -> list[dict]:
+    """`행정심판청구(제출용)/갑호증및법령정보/법령정보` PDF — `rel` 은 `갑호증및법령정보/법령정보/…`."""
+    root = _GAB_PRIMARY_ROOT / GAB_LAW_SUB_REL
+    if not root.is_dir():
+        return []
+    seen_rel: set[str] = set()
+    out: list[dict] = []
+    rp = f"{GAB_EVIDENCE_PRIMARY_REL}/{GAB_LAW_SUB_REL}"
+    for p in sorted(root.rglob("*")):
+        if not p.is_file() or p.suffix.lower() != ".pdf":
+            continue
+        if p.name.startswith("."):
+            continue
+        tail = p.relative_to(root).as_posix()
+        rel_posix = f"{rp}/{tail}"
+        if rel_posix in seen_rel:
+            continue
+        seen_rel.add(rel_posix)
+        out.append({"label": tail, "rel": rel_posix})
+    out.sort(key=lambda x: (x["rel"], x["label"]))
+    return out
+
+
 def merge_law_pdf_primary_usb() -> list[dict]:
     """`…/법령정보/*.pdf` — tail 기준 primary 우선."""
     p_dir = f"{GAB_EVIDENCE_PRIMARY_REL}/{GAB_LAW_SUB_REL}"
     u_dir = f"{GAB_EVIDENCE_USB_REL}/{GAB_LAW_SUB_REL}"
-    prim = _list_law_pdf_items_for_rels((p_dir,))
+    prim = _list_law_pdf_under_primary_law_root()
     usb = _list_law_pdf_items_for_rels((u_dir,))
     seen: set[str] = set()
     out: list[dict] = []
@@ -1351,11 +1418,20 @@ def merge_gab_viewable_lists(*lists: list[dict]) -> list[dict]:
     return out
 
 
-def list_viewable_under_repo_rel(dir_rel: str, *, sort_gab: bool = False) -> list[dict]:
-    """저장소 기준 상대 폴더 아래의 PDF·이미지 파일 목록(하위 폴더 포함)."""
-    root = _REPO / dir_rel
+def list_viewable_under_repo_rel(
+    dir_rel: str,
+    *,
+    sort_gab: bool = False,
+    rel_prefix: str | None = None,
+) -> list[dict]:
+    """저장소 기준 상대 폴더 아래의 PDF·이미지 파일 목록(하위 폴더 포함).
+
+    rel_prefix 가 있으면 `rel` 은 `{rel_prefix}/{root 기준 tail}`(포털 `/serve/` 와 맞춤).
+    """
+    root = _REPO.joinpath(*dir_rel.split("/"))
     if not root.is_dir():
         return []
+    prefix = (rel_prefix or "").strip("/").replace("\\", "/")
     out: list[dict] = []
     for p in sorted(root.rglob("*")):
         if not p.is_file():
@@ -1365,11 +1441,14 @@ def list_viewable_under_repo_rel(dir_rel: str, *, sort_gab: bool = False) -> lis
         if p.suffix.lower() not in _VIEWABLE_EXT:
             continue
         try:
-            rel_full = p.relative_to(_REPO)
+            tail = p.relative_to(root).as_posix()
         except ValueError:
             continue
-        label = str(p.relative_to(root)).replace("\\", "/")
-        out.append({"label": label, "rel": rel_full.as_posix()})
+        label = tail
+        rel_posix = (
+            f"{prefix}/{tail}" if prefix else p.relative_to(_REPO).as_posix()
+        )
+        out.append({"label": label, "rel": rel_posix})
     if sort_gab:
         out.sort(key=lambda x: _gab_sort_key_from_rel(x["rel"]))
     return out
@@ -1377,22 +1456,35 @@ def list_viewable_under_repo_rel(dir_rel: str, *, sort_gab: bool = False) -> lis
 
 def build_meta(md_path: Path) -> dict:
     prefix = _prefix_from_submission_md(md_path)
-    # 포털 `/serve/` 경로 = 저장소 상대 경로. 제출 정본은 `행정심판청구(최종)/`(start.js가 `행정심판최종본/` 폴더만 있는 클론은 거울 경로로 대체).
-    final_root = "행정심판청구(최종)"
+    date_prefix = _archive_date_prefix(md_path, prefix)
+    # 포털 `/serve/` 경로 = 저장소 상대 경로. 제출 정본은 `행정심판청구(원본)/`.
+    final_root = "행정심판청구(원본)"
     folder_dated = f"{final_root}/{prefix}"
-    # `행정심판청구(최종)/{prefix}/` 또는 `{prefix}(지역명)/` 아래에 01·02·별지가 모두 있으면 그 경로만 사용.
+    # `행정심판청구(원본)/{prefix}/` 또는 `{prefix}(지역명)/` 아래에 01·02·별지가 모두 있으면 그 경로만 사용.
     # 구버전(260404 등)은 01·02·시간축은 최종 루트, 개요·갑목록만 `{prefix}/` 하위.
     if _parent_is_dated_case_folder(md_path.parent.name, prefix):
         base = f"{final_root}/{md_path.parent.name}"
-        # 작업 허브·`<details>` 갑 목록: `행정심판청구(최종)/작업보조/`(포털 탭 아님). 탭은 제출 정본 MD만.
-        tab_sources = {
-            "appeal": f"{base}/{prefix}_01_행정심판청구서.md",
-            "gab1": f"{base}/{prefix}_별지제1호_증거자료_목록.md",
-            "gab2": f"{base}/{prefix}_별지제2호_주요인용판례_및_적용주석.md",
-            "gab3": f"{base}/{prefix}_별지제3호_사실관계_시간축_정리표.md",
-            "gab4": f"{base}/{prefix}_별지제4호_법제사적_보충의견.md",
-            "injunction": f"{base}/{prefix}_02_집행정지신청서.md",
-        }
+        # 작업 허브·`<details>` 갑 목록: `행정심판청구(원본)/작업보조/`(포털 탭 아님). 탭은 제출 정본 MD만.
+        if re.match(r"^\d{6}$", md_path.parent.name) or re.match(
+            r"^\d{6}_md$", md_path.parent.name
+        ):
+            tab_sources = {
+                "appeal": f"{base}/행정심판청구서.md",
+                "gab1": f"{base}/별지제1호_증거자료_목록.md",
+                "gab2": f"{base}/별지제2호_주요인용판례_및_적용주석.md",
+                "gab3": f"{base}/별지제3호_사실관계_시간축_정리표.md",
+                "gab4": f"{base}/별지제4호_법제사적_보충의견.md",
+                "injunction": f"{base}/집행정지신청서.md",
+            }
+        else:
+            tab_sources = {
+                "appeal": f"{base}/{prefix}_01_행정심판청구서.md",
+                "gab1": f"{base}/{prefix}_별지제1호_증거자료_목록.md",
+                "gab2": f"{base}/{prefix}_별지제2호_주요인용판례_및_적용주석.md",
+                "gab3": f"{base}/{prefix}_별지제3호_사실관계_시간축_정리표.md",
+                "gab4": f"{base}/{prefix}_별지제4호_법제사적_보충의견.md",
+                "injunction": f"{base}/{prefix}_02_집행정지신청서.md",
+            }
     else:
         tab_sources = {
             "appeal": f"{final_root}/{prefix}_01_행정심판청구서.md",
@@ -1404,10 +1496,10 @@ def build_meta(md_path: Path) -> dict:
         }
     return {
         "siteTitle": "농원근린공원 행정심판청구",
-        "siteSubtitle": "집행정지신청 병합 · 인천광역시 행정심판위원회 심리 참고",
-        "updated": _iso_date_from_submission_prefix(prefix),
+        "siteSubtitle": "집행정지신청 병합 · 중앙행정심판위원회 심리 참고",
+        "updated": _iso_date_from_submission_prefix(date_prefix),
         "disclaimer": (
-            "본 화면은 인천광역시 행정심판위원회 심리 참고용입니다.\n"
+            "본 화면은 중앙행정심판위원회 심리 참고용입니다.\n"
             "증거의 효력과 원본은 전자제출본과 제출 매체를 따르며, 미주·각주는 본문 아래에 따로 표시합니다."
         ),
         "footerLine": "",  # main()에서 채움
@@ -1419,7 +1511,7 @@ def build_meta(md_path: Path) -> dict:
             "points": [
                 "**핵심:** 갑 제1호증 분할 1-1~1-13, 갑 제2호증~갑 제7-2호증, 갑 제8-1·8-2호증, 갑 제9-1·9-7호증 등 — 본문 쟁점별 직접 인용.",
                 "**보충 갑호증:** 전자매체(USB) 편철·증거총목과 함께 제출합니다.",
-                "⚠ 포털·/serve/: 갑·법령정보 실물은 `갑호증및법령정보/`·`USB/갑호증및법령정보/` 만 연다.",
+                "⚠ 포털·/serve/: 클론만. rel `갑호증및법령정보/…` → `행정심판청구(제출용)/갑호증및법령정보/…`. 제출 MD는 `행정심판청구(원본)/제출원문(원본)/`·`/api/tab-sources`(NNNNNN_md 미사용). USB·번들 경로는 포털 비관여.",
                 "인용 판례 링크: `precedentFiles`는 위 루트의 `법령정보/*.pdf` 만 스캔한다. 파일명에 `2008두167` 형식이 들어가야 본문 사건번호와 매칭된다.",
                 "증거 실물·파일명은 청구서 「증거 편철·파일명·전수조사 유의」 및 tools/audit_gab_evidence_folder.py·survey_gab_evidence_full.py·audit_law_info_folder.py 로 본 화면·제출본을 맞출 것.",
             ],
@@ -1442,16 +1534,20 @@ def build_meta(md_path: Path) -> dict:
 
 
 def main() -> None:
-    if not _MD.is_file():
-        raise FileNotFoundError(f"청구서 MD 없음: {_MD}")
-    md_path = _MD
+    md_path = appeal_md_path(_REPO)
+    if not md_path.is_file():
+        raise FileNotFoundError(f"청구서 MD 없음: {md_path}")
     raw = md_path.read_text(encoding="utf-8")
     evidence_rows = parse_evidence_block(raw)
     evidence_src = raw
     # 청구서에 증거 목록이 없고 별지 제1호에만 있는 구성(260405 등)
     if len(evidence_rows) < 3:
-        prefix = md_path.name.split("_")[0]
-        alt = md_path.parent / f"{prefix}_별지제1호_증거자료_목록.md"
+        pn = md_path.parent.name
+        if re.match(r"^\d{6}$", pn) or re.match(r"^\d{6}_md$", pn):
+            alt = md_path.parent / "별지제1호_증거자료_목록.md"
+        else:
+            prefix = md_path.name.split("_")[0]
+            alt = md_path.parent / f"{prefix}_별지제1호_증거자료_목록.md"
         if alt.is_file():
             alt_raw = alt.read_text(encoding="utf-8")
             alt_rows = parse_evidence_block(alt_raw)
@@ -1459,9 +1555,10 @@ def main() -> None:
                 evidence_rows = alt_rows
                 evidence_src = alt_raw
     gab_files = merge_viewable_dual_primary_usb(
-        GAB_EVIDENCE_PRIMARY_REL,
+        GAB_EVIDENCE_PRIMARY_DISK_REL,
         GAB_EVIDENCE_USB_REL,
         sort_gab=True,
+        rel_prefix_primary=GAB_EVIDENCE_PRIMARY_REL,
     )
     evidence = merge_all_gab_range_rows(evidence_rows, gab_files)
     meta = build_meta(md_path)
@@ -1472,13 +1569,13 @@ def main() -> None:
     )
     meta["gabFiles"] = gab_files
     meta["attachFiles"] = merge_viewable_dual_primary_usb(
-        f"{GAB_EVIDENCE_PRIMARY_REL}/{GAB_ATTACH_SUB_REL}",
+        f"{GAB_EVIDENCE_PRIMARY_DISK_REL}/{GAB_ATTACH_SUB_REL}",
         f"{GAB_EVIDENCE_USB_REL}/{GAB_ATTACH_SUB_REL}",
         sort_gab=False,
+        rel_prefix_primary=f"{GAB_EVIDENCE_PRIMARY_REL}/{GAB_ATTACH_SUB_REL}",
     )
     meta["footerLine"] = (
-        f"자료 기준일: {meta['updated']}. "
-        f"증거 목록은 청구서 정본과 같으며, 갑8·갑9 묶음에는 디스크에 있는 갑8-1·갑9-1 주제 MP4가 자동 병치됩니다."
+        "행정심판청구서, 집행정지신청서 등은 제출원문 안에, 증거 및 법령정보는 갑호증및첨부서류 폴더 안에 있으며 청구서 정본과 동일합니다."
     )
     out = {"meta": meta, "evidence": evidence}
     _OUT.parent.mkdir(parents=True, exist_ok=True)

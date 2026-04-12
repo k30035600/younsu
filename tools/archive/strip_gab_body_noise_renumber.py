@@ -17,7 +17,7 @@ import uuid
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[2]
-GAB = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+GAB = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
 
 PAT_ATTACH_PAREN = re.compile(
     r"^첨부\(갑제(\d+(?:-\d+)?)호증\)_(\d{2,3})_(.+)$",
@@ -161,7 +161,7 @@ def main() -> None:
     text = "\n".join(log) + "\n" if log else "(처리할 첨부(갑제…) 파일 없음)\n"
     print(text)
 
-    out = _REPO / "행정심판청구(증거)" / "최종" / "260401_본문잡표기제거_정렬재번호_기록.txt"
+    out = _REPO / "행정심판청구(제출용)" / "최종" / "260401_본문잡표기제거_정렬재번호_기록.txt"
     if log and not args.dry_run:
         out.write_text(text, encoding="utf-8")
         print(f"기록: {out}")

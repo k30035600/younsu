@@ -18,7 +18,7 @@ import re
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
-ROOT = _REPO / "행정심판청구(증거)"
+ROOT = _REPO / "행정심판청구(제출용)"
 
 # 긴 패턴 먼저: yyyy-mm-dd_nnn
 PAT_YMD_N = re.compile(r"(\d{4})-(\d{2})-(\d{2})_(\d+)")

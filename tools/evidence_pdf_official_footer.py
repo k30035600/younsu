@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """갑호증·법령정보의 이미지·PDF를 공문서 여백에 가깝게 A4 PDF로 옮기고, 꼬리말을 넣는다.
 
-- 소스 루트: `행정심판청구(증거)/{갑호증|법령정보}` 및 동일 이름의 **`최종/`** 하위(`…/최종/갑호증` 등). 동일 상대경로는 `최종/` 쪽을 우선.
+- 소스 루트: `행정심판청구(제출용)/{갑호증|법령정보|갑호증및법령정보}` 및 동일 이름의 **`최종/`** 하위(`…/최종/갑호증` 등). 동일 상대경로는 `최종/` 쪽을 우선.
 - 대상: `.jpg` `.jpeg` `.png` `.pdf` `.mp4`(대소문자 무시). 그 외 확장자는 제외.
-- 출력(기본): `행정심판청구(증거)/official_pdf_out/{갑호증|법령정보}/…` 에 원본과 동일한 상대 경로(`--out` 으로 변경 가능). 조판 시 `.mp4`·원본복사 목록은 **원본 확장자 유지**, 그 외 이미지·PDF는 `.pdf`.
+- 출력(기본): `행정심판청구(제출용)/official_pdf_out/{갑호증|법령정보|갑호증및법령정보}/…` 에 원본과 동일한 상대 경로(`--out` 으로 변경 가능). **원본 트리(`갑호증및법령정보` 등)에 직접 꼬리말을 넣으려면** `--out 행정심판청구(제출용)` (PowerShell에서는 경로를 **따옴표**로 감쌀 것). 조판 시 `.mp4`·원본복사 목록은 **원본 확장자 유지**, 그 외 이미지·PDF는 `.pdf`.
 - 꼬리말(각 쪽): **좌** 작성일시 · **가운데** 원본 파일명 · **우** `현재쪽/총쪽`
 - 여백(mm): 상 28 · 하 20(본문) + 꼬리말 10 · 좌 28 · 우 26(조판본만).
 - **방향:** 이미지는 픽셀 가로·세로 비교, PDF는 **각 원본 쪽**의 가로·세로 비교 → 가로형이면 **A4 가로**, 세로형이면 **A4 세로**(정사각형은 세로).
@@ -25,15 +25,17 @@ import argparse
 import os
 import shutil
 import sys
+import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
 import fitz  # PyMuPDF
 
 _REPO = Path(__file__).resolve().parent.parent
-_EVIDENCE = _REPO / "행정심판청구(증거)"
+_EVIDENCE = _REPO / "행정심판청구(제출용)"
 _DEFAULT_OUT = _EVIDENCE / "official_pdf_out"
-_SOURCE_NAMES = ("갑호증", "법령정보")
+_SOURCE_NAMES = ("갑호증", "법령정보", "갑호증및법령정보")
 
 
 def _source_roots() -> list[Path]:
@@ -41,6 +43,7 @@ def _source_roots() -> list[Path]:
 
     동일 (폴더명, 상대경로)가 두 루트에 있으면 리스트에서 **뒤**에 온 루트(보통 `최종/…`)가 우선한다.
     `갑호증/법령정보/` 는 `갑호증` 루트 `rglob` 에 포함되므로 별도 루트를 두지 않는다.
+    `갑호증및법령정보/` 는 포털·제출 편철용 통합 트리로 별도 루트에 둔다.
     """
     roots: list[Path] = []
     for name in _SOURCE_NAMES:
@@ -146,6 +149,39 @@ def _content_rect(page_rect: fitz.Rect, ml: float, mr: float, mt: float, mb_body
     )
 
 
+def _draw_header(
+    page: fitz.Page,
+    *,
+    center: str,
+    fontpath: str | None,
+) -> None:
+    """공문 상단 여백 안에 가운데 정렬 머리말(한 줄)."""
+    if not (center or "").strip():
+        return
+    r = page.rect
+    ml, mr, mt, _mb_body, _fh = _margins_pt()
+    hdr = fitz.Rect(
+        r.x0 + ml,
+        r.y0 + 4,
+        r.x1 - mr,
+        r.y0 + mt - 6,
+    )
+    fontsize = 10
+    if fontpath:
+        page.insert_font(fontname="kohdr", fontfile=fontpath)
+        fn = "kohdr"
+    else:
+        fn = "helv"
+    page.insert_textbox(
+        hdr,
+        center.strip(),
+        fontname=fn,
+        fontsize=fontsize,
+        align=fitz.TEXT_ALIGN_CENTER,
+        color=(0, 0, 0),
+    )
+
+
 def _draw_footer(
     page: fitz.Page,
     *,
@@ -196,7 +232,11 @@ def _draw_footer(
 
 
 def _insert_raster_image(page: fitz.Page, cr: fitz.Rect, src_path: Path) -> None:
-    """래스터 이미지: 원본 바이트 스트림 우선(재인코딩 최소화). 투명 PNG는 alpha 기본."""
+    """래스터 이미지: 원본 바이트 스트림 우선(재인코딩·픽셀 손실 최소화).
+
+    `stream=` 경로는 JPEG/PNG 압축 바이트를 그대로 PDF XObject로 넣고, `cr` 은 **표시(배치)**
+    영역만 지정한다(뷰어 확대 시 원본 해상도 활용). 실패 시 파일·Pixmap 경로는 전체 디코드 후 삽입.
+    """
     suf = src_path.suffix.lower()
     raw = src_path.read_bytes()
     if suf in (".jpg", ".jpeg", ".jpe", ".jfif"):
@@ -227,15 +267,68 @@ def _insert_raster_image(page: fitz.Page, cr: fitz.Rect, src_path: Path) -> None
 
 
 def _save_pdf_preserve_image_streams(doc: fitz.Document, path: Path) -> None:
-    """이미지·폰트 스트림 재압축을 피하고, 정리 단계는 보수적으로."""
-    doc.save(
-        str(path.resolve()),
-        garbage=2,
-        deflate=True,
-        clean=False,
-        deflate_images=False,
-        deflate_fonts=False,
+    """이미지·폰트 스트림 재압축을 피하고, 정리 단계는 보수적으로.
+
+    출력 경로가 읽기 소스와 같을 때(원본 위치 덮어쓰기) PyMuPDF가 기존 파일을
+    바로 지우지 못하는 경우가 있어, 동일 디렉터리 임시 파일에 저장 후 replace 한다.
+    """
+    path = path.resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(
+        suffix=".pdf", prefix="._epf_", dir=str(path.parent)
     )
+    os.close(fd)
+    tmp_path = Path(tmp_name)
+    ok = False
+    try:
+        doc.save(
+            str(tmp_path),
+            garbage=2,
+            deflate=True,
+            clean=False,
+            deflate_images=False,
+            deflate_fonts=False,
+        )
+        last: OSError | None = None
+        for attempt in range(18):
+            try:
+                tmp_path.replace(path)
+                ok = True
+                return
+            except OSError as e:
+                last = e
+                if attempt < 17:
+                    time.sleep(0.4)
+                else:
+                    break
+        # 동일 폴더(OneDrive 등)에서 replace 가 막힐 때: %TEMP% 에 두고 copy2 로 덮어쓴다.
+        ext_tmp = (
+            Path(os.environ.get("TEMP", tempfile.gettempdir()))
+            / f"_epf_{path.stem}_{os.getpid()}.pdf"
+        )
+        try:
+            shutil.copy2(tmp_path, ext_tmp)
+            for attempt in range(12):
+                try:
+                    shutil.copy2(ext_tmp, path)
+                    ok = True
+                    return
+                except OSError as e:
+                    last = e
+                    if attempt < 11:
+                        time.sleep(0.4)
+                    else:
+                        raise last from None
+        finally:
+            try:
+                ext_tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _truncate_center(name: str, max_chars: int = 42) -> str:
@@ -251,8 +344,11 @@ def _build_pages_from_src(
     written_at: str,
     fontpath: str | None,
     force_portrait: bool = False,
+    header_center: str | None = None,
 ) -> fitz.Document:
     """단일 소스 파일 → A4 새 문서(쪽마다 꼬리말, 쪽별 가로·세로 자동)."""
+    if not (display_name or "").strip():
+        raise ValueError("조판 꼬리말 파일명(display_name)이 비어 있습니다.")
     ml, mr, mt, mb_body, fh = _margins_pt()
     out = fitz.open()
     suffix = src_path.suffix.lower()
@@ -267,6 +363,8 @@ def _build_pages_from_src(
             landscape = False if force_portrait else _landscape_from_wh(w, h)
             pw, ph = _a4_page_size_pt(landscape=landscape)
             new_page = out.new_page(width=pw, height=ph)
+            if header_center:
+                _draw_header(new_page, center=header_center, fontpath=fontpath)
             cr = _content_rect(new_page.rect, ml, mr, mt, mb_body, fh)
             # clip 은 **소스 페이지** 좌표계 — 목적지 cr 을 넘기면 원본이 잘못 잘림
             new_page.show_pdf_page(cr, src_doc, pno, keep_proportion=True)
@@ -292,6 +390,8 @@ def _build_pages_from_src(
         landscape = False if force_portrait else _landscape_from_wh(float(iw), float(ih))
         pw, ph = _a4_page_size_pt(landscape=landscape)
         page = out.new_page(width=pw, height=ph)
+        if header_center:
+            _draw_header(page, center=header_center, fontpath=fontpath)
         cr = _content_rect(page.rect, ml, mr, mt, mb_body, fh)
         _insert_raster_image(page, cr, src_path)
         _draw_footer(

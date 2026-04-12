@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[2]
-GAB = _REPO / "행정심판청구(증거)" / "최종" / "갑호증"
+GAB = _REPO / "행정심판청구(제출용)" / "최종" / "갑호증"
 OLD = "갑제6-2증_건축과_도로·통행(건축과-25898)_동영상_통합.mp4"
 NEW = "갑제5-2호증_건축과_도로·통행_동영상(건축과-25898).mp4"
 

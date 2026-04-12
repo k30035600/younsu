@@ -22,7 +22,7 @@ except ImportError:
     sys.exit("pymupdf(fitz) required: pip install pymupdf")
 
 REPO = Path(__file__).resolve().parents[1]
-GAB_ROOT = REPO / "행정심판청구(증거)" / "갑호증및법령정보"
+GAB_ROOT = REPO / "행정심판청구(제출용)" / "갑호증및법령정보"
 
 IMG_AREA_THRESHOLD = 0.25
 

@@ -37,25 +37,39 @@ Railway 배포 (commission-portal)
 
 로컬 개발 — 서버는 하나만
 --------------------------
-  - npm start 는 기본 포트 3000 하나만 사용합니다.
-  - 3000이 이미 쓰이면 start.js가 메시지를 내고 종료합니다. 이때 3001로 또 띄우지 마세요(같은 앱이 이중 실행됨).
-  - 이미 떠 있으면: http://127.0.0.1:3000/ 로 접속하거나, 작업 관리자에서 해당 node만 종료한 뒤 한 번만 npm start.
-  - 정말 다른 포트가 필요할 때만: set PORT=3002 (한 인스턴스만) 후 npm start.
+  - npm start 는 기본 포트 8282 하나만 사용합니다(환경 변수 PORT 미지정 시).
+  - 8282가 이미 쓰이면 start.js가 메시지를 내고 종료합니다. 같은 앱을 다른 포트로 이중 실행하지 마세요.
+  - 이미 떠 있으면: http://127.0.0.1:8282/ 로 접속하거나, 작업 관리자에서 해당 node만 종료한 뒤 한 번만 npm start.
+  - Windows Defender 방화벽 "일부 기능 차단": Windows에서는 기본으로 127.0.0.1만 수신해 외부 인바운드가 없습니다. 같은 PC: http://127.0.0.1:8282/ 접속. LAN 공개 필요 시 COMMISSION_LISTEN_HOST=0.0.0.0 후 방화벽에서 포트 허용.
+  - 다른 포트가 필요할 때: set PORT=3000 (한 인스턴스만) 후 npm start.
+
+번들 폴더 (로컬)
+----------------
+  - **저장소 루트의 `Bundle/`** 를 로컬 번들로 씁니다(예: `D:\OneDrive\Cursor\younsu\Bundle`).
+  - `행정심판청구(제출용)` 과 동일 트리 유지: `.\tools\sync_bundle_mirror_jebsul.ps1`
+  - USB 동기화 시에도 이 폴더에 포털·증거 번들을 만들려면:  
+    `.\tools\sync_commission_usb.ps1 -UseRepoBundle -LauncherDriveRoot F:\`  
+    (`-BundlePath` 를 비운 채 `-UseRepoBundle` 만 지정하면 `Bundle` 이 출력 대상이 됩니다.)
+
+정본 경로 (원문 vs 갑호증·법령)
+-------------------------------
+  - **작업 폴더 이름(단일 정의):** `web/commission-portal/portal-work-paths.js`. `start.js`가 require 하며, 브라우저는 `GET /api/portal-profile` 의 `workLayout` 으로 같은 키(`wonmunDir`, `submitDir`, `wonmunSubmitWonmun`, `evidenceUnified` 등)를 받는다.
+  - **원문(MD·탭 본문):** `(원본)/(제출원문 폴더)/` — 키 이름은 `workLayout`; 실제 `tabSources` 문자열은 `public/data/portal-data.json`이 `/api/tab-sources`보다 우선.
+  - **갑호증·법령:** 실물 `(제출용)/(통합 증거 폴더)/`; JSON·`/serve/` rel 은 보통 통합 폴더명으로 시작(`workLayout.evidenceUnified`). 빌드·스캔은 `build_commission_evidence_json.py` 등이 동일 트리를 쓴다.
+  - **`tools/wonmun_paths.py`:** 원문 루트만(위 `portal-work-paths.js` 의 wonmunDir·wonmunSubmitWonmun 과 일치). 탭 표시 경로는 `portal-data.json` 이 우선.
 
 원문 MD 편집(로컬만)
 --------------------
   - 탭별 MD 편집: `/serve/` 정본이 없으면 `public/source/` 폴백으로 불러옴. .md 파일명으로 내려받기, 저장 시 정본 경로 덮어쓰기.
-  - 저장 API: POST /api/save-md (허용: `행정심판청구(최종)/작업보조/개요_README_…`, `별지_갑호증_…`, `…/260405(인천행심위)/260405_01_…`, 별지 제1~3호 등). **부모 폴더 자동 생성**. 동일 내용을 **`행정심판청구(최종)/260405_*.md` 직하에도 기록**(날짜 폴더 정본 + 루트 병행). 읽기만 `행정심판최종본/` 거울 대체 가능.
-  - 갑호증·법령정보 `/serve/`: **`…/갑호증 및 법령정보/…`**·**`…/갑호증/…`**·**`…/법령정보/…`**·**`…/갑호증/법령정보/…`** 실제 파일을 화이트리스트로 연다(`start.js`). 통합·구 경로는 서버가 교차 해석한다. 구 `pdf_2_pdf` 트리는 사용하지 않음.
-  - 판례 링크: `python tools/build_commission_evidence_json.py` 로 `precedentFiles` 갱신. **`갑호증 및 법령정보/법령정보/`**·**`갑호증/법령정보/`** 가 있으면 우선, 없으면 **`법령정보/`** 등 레거시 경로를 스캔.
-  - COMMISSION_REPO_ROOT가 USB 등 **정본 트리가 없는 경로**를 가리키면 예전에는 /serve/·저장이 전부 꺼졌음 → start.js가 monorepo 기본 루트(`web/commission-portal/../../`)로 **자동 대체**(콘솔에 안내). USB만 쓸 때는 그 경로에 `행정심판청구(최종)` 등을 두거나 변수를 비울 것.
+  - 저장 API: POST /api/save-md (허용: `행정심판청구(원본)/작업보조/` 화이트리스트 2건, `…/제출원문(원본)/` 제출 정본 6개 MD만). **`행정심판청구(원본)/old/…` 는 미사용 — /serve·저장 모두 제외.** `YYMMDD` 형 날짜 폴더 직하 저장 시 루트 `…(원본)/YYMMDD_*.md` 미러는 기존 로직 유지.
+  - 갑호증·법령정보 `/serve/`: younsu 저장소에서는 **`행정심판청구(제출용)/갑호증및법령정보/…`** 실물을 우선 연다(`start.js`). URL·rel 은 `갑호증및법령정보/…`·`USB/갑호증및법령정보/…`. **USB 독립 실행**(`COMMISSION_REPO_ROOT` = 드라이브 루트, 예 `F:\`): 증거는 루트 **`갑호증및법령정보/`**. 제출 서면: **`Bundle/행정심판청구(원본)/제출원문(원본)/…`** 또는 `yymmdd_md/…`(로컬 `npm start` 는 `/api/tab-sources` 로 동일 규칙; `Bundle/` 접두·구 `Web/…` 호환) 또는 루트 **`제출원문/{파일명}`**·구 **`Bundle/md/*.md`**·**`Web/md/*.md`**.
+  - 판례 링크: `python tools/build_commission_evidence_json.py` 로 `precedentFiles` 갱신. 스캔은 **`행정심판청구(제출용)/갑호증및법령정보/법령정보/`**·`USB/…` 등 빌드 스크립트 경로를 따른다.
+  - COMMISSION_REPO_ROOT가 USB 등 **정본 트리가 없는 경로**를 가리키면 예전에는 /serve/·저장이 전부 꺼졌음 → start.js가 monorepo 기본 루트(`web/commission-portal/../../`)로 **자동 대체**(콘솔에 안내). USB만 쓸 때는 그 경로에 `행정심판청구(원본)` 등을 두거나 변수를 비울 것.
+  - **CMD 창 없이 실행:** 저장소 **`younsu\web\행정심판청구_숨김시작.vbs`**(동일 로직 `web\CommissionPortal-StartHidden.vbs`). 이 둘은 **소스 복사본**이며, USB **`F:\`** 에 직접 두거나 동기화 시 **`F:\Bundle\`** 로 복사됩니다(`commission-portal` 과 같은 층). **드라이브 루트의 `행정심판청구_숨김시작.vbs`** 도 지원합니다. Node가 숨김으로 뜨고 잠시 뒤 브라우저만 열림. `COMMISSION_REPO_ROOT` 는 USB 루트(예 `F:\`)로 맞춰집니다. 종료는 작업 관리자에서 `Node.js`·`node.exe` 프로세스 종료. `Bundle\commission-portal`·구 `Web\commission-portal`·`번들용\portal` 탐색.
   - 배포(Railway 등)에서는 정적 호스팅만 할 경우 저장 API가 없으므로 편집·저장은 로컬에서만 사용.
 
-좌측 본문 HTML 그대로 PDF (로컬)
----------------------------------
-  - 브라우저: 해당 탭에서 Ctrl+P → PDF 저장(인쇄 미디어 CSS 그대로). MD 원문 textarea·에디터를 인쇄하면 `**`·`---` 가 그대로 나옵니다.
-  - CLI: npm install 후(최초 1회, devDependency playwright), npm start 를 다른 터미널에서 띄운 뒤
-      npm run pdf:tab -- --tab appeal -o ../../temp/portal-appeal.pdf
-    물리 프린터·「PDF로 저장」대화상자:  node scripts/portal-tab-pdf.js --tab appeal --print
-  - `portal-tab-pdf.js` 는 MD 렌더 완료(networkidle + h1 에 `**` 없음)까지 기다린 뒤 PDF/인쇄합니다.
-  - Edge가 없는 환경에서는 Playwright Chromium 이 필요할 수 있음: npx playwright install chromium
+포털과 PDF·DOCX
+----------------
+  - **포털 기능 범위:** commission-portal 은 제출 MD·증거 **열람**과(로컬) 허용 경로 **MD 저장**을 담당합니다. **PDF·Word(docx)를 서버나 화면에서 직접 생성·보내지 않습니다.** 제출용 PDF/docx 는 저장소·별도 도구·전자제출 시스템에서 만듭니다.
+  - **선택적 로컬 스냅숏(포털 외):** 보관용으로 화면을 PDF로 남기려면 브라우저에서 해당 탭 **Ctrl+P → PDF 저장** 등을 쓸 수 있습니다(인쇄 미디어 CSS). 이는 사용자 PC에서의 동작이며 포털이 파일을 “만들어 주는” 기능은 아닙니다.
+  - 개발용 `portal-tab-pdf.js`·Playwright 는 위와 같은 **로컬 자동화**용이며, 일반 심리·제출 워크플로에 필수는 아닙니다.

@@ -11,8 +11,8 @@
 3·4·5는 **동일 키워드를 가진 다른 갑호증**과 겹칠 수 있으므로 「약한 일치」로 보면 됩니다.
 
   python tools/audit_attachment_cited_in_final.py
-  python tools/audit_attachment_cited_in_final.py --out 행정심판청구(증거)/260407_첨부_최종인용_검사.txt
-  python tools/audit_attachment_cited_in_final.py --final-glob "행정심판청구(최종)/260407/*.md"
+  python tools/audit_attachment_cited_in_final.py --out 행정심판청구(제출용)/260409_첨부_최종인용_검사.txt
+  python tools/audit_attachment_cited_in_final.py --final-glob "행정심판청구(원본)/제출원문(원본)/*.md"
 
 의존성: 표준 라이브러리만.
 """
@@ -22,6 +22,8 @@ import argparse
 import re
 import sys
 from pathlib import Path
+
+from wonmun_paths import latest_yymmdd_md_dir
 
 _REPO = Path(__file__).resolve().parent.parent
 _DEFAULT_ATTACH = _REPO / "돌심방자료" / "행정심판청구서_첨부"
@@ -140,8 +142,8 @@ def main() -> int:
     ap.add_argument(
         "--final-glob",
         type=str,
-        default="행정심판청구(최종)/260407/*.md",
-        help="최종 문서 MD glob(저장소 루트 기준)",
+        default=None,
+        help="최종 문서 MD glob(저장소 루트 기준). 생략 시 제출원문(원본)/*.md",
     )
     ap.add_argument(
         "--out",
@@ -152,9 +154,13 @@ def main() -> int:
     args = ap.parse_args()
 
     attach = args.attach.resolve() if args.attach.is_absolute() else (_REPO / args.attach).resolve()
-    final_paths = sorted(_REPO.glob(args.final_glob))
+    final_glob = args.final_glob
+    if not final_glob:
+        d = latest_yymmdd_md_dir(_REPO)
+        final_glob = str(d.relative_to(_REPO).as_posix()) + "/*.md"
+    final_paths = sorted(_REPO.glob(final_glob))
     if not final_paths:
-        print(f"최종 MD 없음: glob {_REPO / args.final_glob!s}", file=sys.stderr)
+        print(f"최종 MD 없음: glob {final_glob!r} (저장소 루트 기준)", file=sys.stderr)
         return 1
 
     corpus, corpus_labels = _read_corpus(final_paths)
@@ -168,7 +174,7 @@ def main() -> int:
         return 1
 
     lines: list[str] = []
-    lines.append("=== 첨부 → 최종(260407) MD 인용 검사 ===")
+    lines.append("=== 첨부 → 제출원문(원본) MD 인용 검사 ===")
     lines.append(f"첨부: {attach.relative_to(_REPO)}")
     lines.append(f"최종 MD ({len(corpus_labels)}개):")
     for lb in corpus_labels:

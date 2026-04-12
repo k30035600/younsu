@@ -4,7 +4,7 @@
 [트리 vs 트리]
   python tools/compare_evidence_trees.py \\
     "돌심방자료/행정심판청구서_첨부" \\
-    "행정심판청구(증거)/갑호증"
+    "행정심판청구(제출용)/갑호증"
 
 [단일 쌍 — 해시·크기·(PDF)쪽 수]
   python tools/compare_evidence_trees.py --pair "a.pdf" "b.pdf"

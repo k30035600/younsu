@@ -17,4 +17,4 @@
   strip_gab_body_noise_renumber.py  — 본문 잡표기 제거·재번호(일회성)
   move_haengjeong_housekeeping_to_temp.py — 루트기록→temp (temp 사용 시)
 
-현행 증거 경로·빌드: 행정심판청구(증거)/최종/, docs/scripts/, 루트 tools/.
+현행 증거 경로·빌드: 행정심판청구(제출용)/최종/, docs/scripts/, 루트 tools/.

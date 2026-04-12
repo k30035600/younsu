@@ -1,7 +1,7 @@
 {
-  "$schemaNote": "저장소 루트 갑호증및법령정보/갑제N호증/·법령정보/ (USB 미러: USB/갑호증및법령정보/).",
+  "$schemaNote": "younsu 실물: 행정심판청구(제출용)/갑호증및법령정보/…. 폴더명 단일 정의: web/commission-portal/portal-work-paths.js · GET /api/portal-profile workLayout. 포털 rel·marker는 갑호증및법령정보/ → 제출용 경로로만 해석.",
   "standalone": true,
-  "physicalRootHint": "D:\\OneDrive\\Cursor\\younsu\\갑호증및법령정보",
+  "physicalRootHint": "D:\\OneDrive\\Cursor\\younsu\\행정심판청구(제출용)\\갑호증및법령정보",
   "marker": "갑호증및법령정보/",
   "folders": [
     { "id": "__root__", "label": "갑호증 루트(파일 직접 배치)" },

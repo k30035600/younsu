@@ -5,6 +5,7 @@
   "description": "행정심판위원회 심리 참고용 증거 대보·검색(정적)",
   "scripts": {
     "start": "node start.js",
+    "vendor:copy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/copy-portal-vendor.ps1",
     "build:data": "python ../../tools/build_commission_evidence_json.py",
     "sync:source": "python ../../tools/sync_web_source.py",
     "pdf:tab": "node scripts/portal-tab-pdf.js"
@@ -14,7 +15,8 @@
   },
   "dependencies": {
     "happy-dom": "^20.8.9",
-    "marked": "^14.1.4"
+    "marked": "^14.1.4",
+    "pdfjs-dist": "4.6.82"
   },
   "devDependencies": {
     "playwright": "^1.50.0"

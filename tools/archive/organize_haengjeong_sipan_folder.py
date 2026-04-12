@@ -1,6 +1,6 @@
 """
 행정심판청구 폴더 정리: 갑호증·첨부·법령정보에는 제출문만 두고,
-스크립트·로그·안내·Cursor 작업용 파일은 `행정심판청구(증거)/최종/작업/` 아래로 이동.
+스크립트·로그·안내·Cursor 작업용 파일은 `행정심판청구(제출용)/최종/작업/` 아래로 이동.
 
 실행(저장소 루트):
   python tools/organize_haengjeong_sipan_folder.py
@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-AP = REPO / "행정심판청구(증거)"
+AP = REPO / "행정심판청구(제출용)"
 WORK = AP / "작업"
 
 ROOT_LOG_NAMES = [
@@ -110,7 +110,7 @@ def main() -> int:
     readme_work = WORK / "README.md"
     if not readme_work.exists() and not dry:
         readme_work.write_text(
-            """# 행정심판청구(증거)/최종/작업
+            """# 행정심판청구(제출용)/최종/작업
 
 이 폴더는 **제출 서면·갑호증 실물이 아닌** 다음을 둡니다.
 

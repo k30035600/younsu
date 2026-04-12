@@ -12,34 +12,35 @@
 
 `npm start` 시 `start.js`가 `/source/…` 아래 `public/source` 파일을 서빙합니다.
 
-의존성: 없음(본 스크립트는 MD 복사·JSON만).
+의존성: `tools/wonmun_paths.py`(`제출원문(원본)` 만).
 """
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import shutil
 import sys
 from pathlib import Path
+
+from wonmun_paths import latest_yymmdd_md_dir
 
 _REPO = Path(__file__).resolve().parent.parent
 _PORTAL_DATA = _REPO / "web" / "commission-portal" / "public" / "data" / "portal-data.json"
 _PUBLIC_SOURCE = _REPO / "web" / "commission-portal" / "public" / "source"
 
-# tabSources 키 → 저장 파일명(utf-8)
-_TAB_FILES: list[tuple[str, str]] = [
-    ("appeal", "행정심판청구.md"),
-    ("gab1", "별지_갑1호증.md"),
-    ("gab2", "별지_갑2호증.md"),
-    ("gab3", "별지_갑3호증.md"),
-    ("gab4", "별지_갑4호증.md"),
-    ("injunction", "집행정지신청.md"),
+# 정본 MD 파일명 → public/source 저장 파일명(utf-8)
+_TAB_COPY: list[tuple[str, str]] = [
+    ("행정심판청구서.md", "행정심판청구.md"),
+    ("별지제1호_증거자료_목록.md", "별지_갑1호증.md"),
+    ("별지제2호_주요인용판례_및_적용주석.md", "별지_갑2호증.md"),
+    ("별지제3호_사실관계_시간축_정리표.md", "별지_갑3호증.md"),
+    ("별지제4호_법제사적_보충의견.md", "별지_갑4호증.md"),
+    ("집행정지신청서.md", "집행정지신청.md"),
 ]
 
 _SITE_DISPLAY_DEFAULT = {
     "siteTitle": "농원근린공원 행정심판청구",
-    "siteSubtitle": "집행정지신청 병합 · 인천광역시 행정심판위원회 심리 참고",
+    "siteSubtitle": "집행정지신청 병합 · 중앙행정심판위원회 심리 참고",
     "updated": "2026-04-05",
 }
 
@@ -49,20 +50,19 @@ def _repo_file(rel: str) -> Path:
     return _REPO / r
 
 
-def _copy_tab_sources(tab_sources: dict) -> None:
+def _copy_tab_sources_from_latest_md() -> None:
+    """`행정심판청구(원본)/제출원문(원본)` 에서 6건 복사(포털 `/api/tab-sources` 와 동일)."""
+    d = latest_yymmdd_md_dir(_REPO)
     _PUBLIC_SOURCE.mkdir(parents=True, exist_ok=True)
-    for key, dest_name in _TAB_FILES:
-        rel = (tab_sources or {}).get(key)
-        if not rel:
-            print(f"skip {key}: tabSources에 없음", file=sys.stderr)
-            continue
-        src = _repo_file(str(rel))
-        if not src.is_file():
-            print(f"skip {key}: 파일 없음 {src}", file=sys.stderr)
+    for src_name, dest_name in _TAB_COPY:
+        sp = d / src_name
+        if not sp.is_file():
+            print(f"skip {dest_name}: 파일 없음 {sp}", file=sys.stderr)
             continue
         dest = _PUBLIC_SOURCE / dest_name
-        shutil.copy2(src, dest)
-        print(f"복사 {dest_name} ← {rel}")
+        shutil.copy2(sp, dest)
+        rel = sp.relative_to(_REPO)
+        print(f"복사 {dest_name} ← {rel.as_posix()}")
 
 
 def _write_site_display(meta: dict, force: bool) -> Path:
@@ -119,10 +119,9 @@ def main() -> None:
 
     data = json.loads(_PORTAL_DATA.read_text(encoding="utf-8"))
     meta = data.get("meta") or {}
-    tab_sources = meta.get("tabSources") or {}
 
     _write_site_display(meta, args.force_site_display)
-    _copy_tab_sources(tab_sources)
+    _copy_tab_sources_from_latest_md()
 
     if args.mirror_public:
         print("(참고) --mirror-public 은 더 이상 필요 없습니다. 출력은 항상 public/source 입니다.")
